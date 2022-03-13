@@ -77,8 +77,8 @@ export default function useMoralis() {
       duration: song.attributes.duration,
       bpm: song.attributes.bpm,
       image: song.attributes.image,
-      song: song.attributes.ifpsUrl,
-      hash: song.attributes.ifpsHash,
+      audio: song.attributes.ipfsUrl,
+      hash: song.attributes.ipfsHash,
       date: new Date(),
       externalUrl: songData.externalUrl,
       creator: song.attributes.creator.attributes.ethAddress,
@@ -199,7 +199,7 @@ export default function useMoralis() {
         });
         //upload to ipfs
         const ipfs = await ipfsUpload(blob);
-        console.log(ipfs.ipfs());
+        console.log("ipfs adress", ipfs);
         console.log(song, "input");
 
         song.set("ipfsUrl", ipfs.ipfs());
@@ -271,6 +271,7 @@ export default function useMoralis() {
           //set loading false
           loading.value = false;
           nftReady.value = true;
+          console.log("NFT:", res)
           return res;
         } else {
           //set loading false

@@ -11,7 +11,7 @@
           ><v-row justify="center">
             <v-icon size="140">mdi-folder-plus</v-icon>
             <v-card-title>
-              Create a new Song with different instruments!
+              Create a new song with different instruments!
             </v-card-title></v-row
           >
         </v-container>
@@ -60,13 +60,22 @@
           </v-btn></v-col
         ></v-row
       >
+      <v-alert
+        class="text-center"
+        :value="success"
+        elevation="24"
+        type="success"
+        max-width="300"
+        color="purple"
+        >Song created</v-alert
+      >
     </v-card>
   </v-dialog>
 </template>
 
 <script>
 import useMoralis from "@/services/useMoralis.js";
-import { watchEffect } from "@vue/composition-api";
+import { ref } from "@vue/composition-api";
 export default {
   data() {
     return {
@@ -78,19 +87,27 @@ export default {
   },
   setup() {
     const { createSong } = useMoralis();
+    const success = ref(false);
     function createsong(name, duration, bpm) {
       createSong(name, duration, bpm)
         .then((res) => {
-          /* change page */
+          success.value = true;
         })
         .catch((err) => {
           console.log(err);
         });
     }
-    return { createsong };
+    return { createsong, success };
   },
 };
 </script>
 
 <style lang="scss" scoped>
+.v-alert {
+  position: fixed;
+  left: 50%;
+  bottom: 30vh;
+  transform: translate(-50%, -50%);
+  margin: 0 auto; // Without this the box extends the width of the page
+}
 </style>

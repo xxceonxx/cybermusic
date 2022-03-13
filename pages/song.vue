@@ -5,7 +5,7 @@
       <v-spacer></v-spacer>
 
     </v-toolbar>
-    <v-row>
+    <v-row v-if="currentTrack"> 
       <v-col md="8" cols="8">
         <SongTracks :song="song" />
       </v-col>
@@ -13,7 +13,12 @@
         <SongSlotCard />
       </v-col>
     </v-row>
-    <v-col  v-if="access">
+        <v-row v-if="!currentTrack"> 
+      <v-col md="12" cols="12">
+        <SongTracks :song="song" />
+      </v-col>
+    </v-row>
+    <v-col class="pt-16" v-if="access">
       <SongCreateNFT  />
     </v-col>
   </v-container>
@@ -24,8 +29,8 @@ import { mapGetters } from "vuex";
 import useMoralis from "@/services/useMoralis.js";
 export default {
   setup(){
-       const { isOwner, access } = useMoralis();
-       return {isOwner, access}
+       const { isOwner, access, currentTrack } = useMoralis();
+       return {isOwner, access, currentTrack}
   },
   mounted(){
     const { isOwner } = useMoralis();

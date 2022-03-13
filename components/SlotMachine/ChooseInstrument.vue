@@ -63,11 +63,11 @@ export default {
           image: `${require(`~/assets/instruments/Bass-md.jpg`)}`,
         },
         {
-          name: "A. Guitar",
+          name: "AGuitar",
           image: `${require(`~/assets/instruments/AGuitar-md.jpg`)}`,
         },
         {
-          name: "E. Guitar",
+          name: "EGuitar",
           image: `${require(`~/assets/instruments/EGuitar-md.jpg`)}`,
         },
         {

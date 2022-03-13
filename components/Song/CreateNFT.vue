@@ -1,5 +1,5 @@
 <template>
-  <v-card>
+  <v-card color="black">
     <v-card-title class="justify-center">Create your Song as NFT</v-card-title>
     <v-stepper v-model="e1" dark>
       <v-stepper-header>
@@ -47,7 +47,7 @@
                 </h2>
                 <br />
                 <v-btn v-if="!loading" @click="mixSong(song)" color="pink"
-                  >Mix Song!</v-btn
+                  >Mix song!</v-btn
                 >
                 <v-progress-linear
                   v-if="loading"
@@ -60,7 +60,7 @@
                 <br />
 
                 <h3 class="red--text font-weight-bold">
-                  The Song will be played and rendered in realtime. Please dont
+                  The song will be played and rendered in realtime. Please dont
                   close this browser window until the process is complete.
                 </h3>
               </v-col>
@@ -92,7 +92,7 @@
             <v-overlay :value="overlay" absolute opacity="100">
               <v-col>
                 <h2 class="red--text align-center">
-                  After you check your Metadata you cant edit your Song anymore!
+                  After you check your metadata you cant edit your song anymore!
                 </h2>
               </v-col>
               <v-row align="center" justify="center">
@@ -129,26 +129,6 @@
                     label="ETH"
                     single-line
                   ></v-text-field>
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col md="6">
-                  <v-row justify="center">
-                    <h3>Duration {{ songData.duration }}</h3>
-                  </v-row>
-                  <v-row>
-                    <v-slider max="300" min="0" v-model="songData.duration">
-                    </v-slider>
-                  </v-row>
-                </v-col>
-                <v-col md="6">
-                  <v-row justify="center">
-                    <h3>BPM {{ songData.bpm }}</h3>
-                  </v-row>
-                  <v-row>
-                    <v-slider max="300" min="1" v-model="songData.bpm">
-                    </v-slider
-                  ></v-row>
                 </v-col>
               </v-row>
               <v-row>
@@ -284,8 +264,6 @@ export default {
       overlay: true,
       quantity: 1,
       songData: {
-        bpm: 1,
-        duration: 1,
         name: "Test",
         describtion: "test",
         externalUrl: ".com",
@@ -305,8 +283,6 @@ export default {
   },
   mounted() {
     const song = this.GET_song();
-    this.songData.name = song?.attributes?.name;
-    this.songData.bpm = song?.attributes?.bpm;
     this.songData.duration = song?.attributes?.duration;
     this.songData.describtion = song?.attributes?.describtion;
     this.songData.externalUrl = song?.attributes?.externalUrl;

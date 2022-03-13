@@ -20,7 +20,6 @@
           </v-btn>
         </v-card-actions>
       </v-card>
-      <v-btn @click="mixSong">dafafae</v-btn>
     </v-list>
     <v-container v-if="loading">
       <v-row justify="center" class="pa-md-12 mx-lg-auto">
@@ -44,7 +43,6 @@ export default {
   methods: {
     ...mapMutations(["SET_song"]),
     goToSong(song) {
-      console.log("songssssssss", song);
       this.SET_song(song);
       this.$router.push("/song");
     },

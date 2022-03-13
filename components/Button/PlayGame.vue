@@ -63,7 +63,7 @@ export default {
       rive: null,
       instruments: [
         { name: "Guitar", icon: "iconName", taken: false },
-        { name: "Drums", icon: "iconName", taken: false },
+        { name: "Drum", icon: "iconName", taken: false },
         { name: "Keys", icon: "iconName", taken: false },
         { name: "Horns", icon: "iconName", taken: false },
       ],

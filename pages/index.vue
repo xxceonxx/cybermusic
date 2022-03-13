@@ -7,9 +7,7 @@
           <h2 class="white--text text-center">
             Create Music with people around the world!
           </h2>
-          <p class="grey--text text-center pt-2">
-            A project created in Buildquests Hackathon
-          </p>
+    
         </v-col>
         <h2 class="green--text text-center">Choose your instruments</h2>
         <v-col class="pa-16"><SlotMachineChooseInstrument /></v-col>
