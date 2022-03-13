@@ -72,6 +72,7 @@ export default {
     return {
       dialog: false,
       instrument: "",
+      file: null,
       instruments: [
         "Bass",
         "AGuitar",
