@@ -102,7 +102,7 @@ export default {
     this.rive = new Rive({
       canvas: this.$refs.riveAnimation,
       animations: "Wait",
-      src: "https://public.rive.app/community/runtime-files/2260-4473-casino-slot-machine.riv",
+      src: "https://public.rive.app/community/runtime-files/2263-4476-casino-slot-machine.riv",
       layout: new Layout({}),
       autoplay: true,
     });
