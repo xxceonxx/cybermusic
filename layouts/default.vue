@@ -1,18 +1,10 @@
 <template>
   <v-app dark>
-    <nav><Header /></nav>
+    <Navbar />
     <v-main>
       <v-container>
         <AuthenticateLogin v-if="!isAuthenticated" />
-        <v-btn @click="() => authenticate()" v-if="!isAuthenticated"
-          >Login</v-btn
-        >
-                <v-btn @click="() => signup()" v-if="!isAuthenticated"
-          >signup</v-btn
-        >
-
         <Nuxt v-if="isAuthenticated" />
-        <v-btn @click="() => logout()" v-if="isAuthenticated">Logout</v-btn>
       </v-container>
     </v-main>
 
@@ -28,7 +20,8 @@ import { ref, watchEffect } from "@/composition";
 export default {
   setup() {
     if (process.client) {
-      const { isAuthenticated, authenticate, logout, signup } = useMoralis();
+      const { isAuthenticated, authenticate, logout, signup } =
+        useMoralis();
       return { isAuthenticated, authenticate, logout, signup };
     }
   },

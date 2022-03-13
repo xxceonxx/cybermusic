@@ -1,66 +1,62 @@
 <template>
-  <v-list width="100%">
-    <v-card v-for="song in songs" :key="song.id">
-      <v-dialog
-        fullscreen
-        hide-overlay
-        transition="dialog-bottom-transition"
-        v-model="dialog"
-      >
-        <template v-slot:activator="{ on, attrs }">
-          <v-img
-            src="https://cdn.vuetifyjs.com/images/cards/house.jpg"
-            class="white--text align-end"
-            gradient="to bottom, rgba(0,0,0,.1), rgba(0,0,0,.5)"
-            height="200px"
-            v-on="on"
-            v-bind="attrs"
-          >
-            <v-card-title> {{ song.attributes.name }} </v-card-title>
-          </v-img>
+  <v-container>
+    <v-list width="100%" v-if="!loading">
+      <v-card v-for="song in songs" :key="song.id">
+        <v-img
+          :src="song.attributes.image"
+          class="white--text align-end"
+          gradient="to bottom, rgba(0,0,0,.1), rgba(0,0,0,.5)"
+          height="200px"
+          @click="goToSong(song)"
+        >
+          <v-card-title> {{ song.attributes.name }} </v-card-title>
+        </v-img>
 
-          <v-card-actions>
-            <v-spacer></v-spacer>
+        <v-card-actions>
+          <v-spacer></v-spacer>
 
-            <v-btn icon>
-              <v-icon>mdi-heart</v-icon>
-            </v-btn>
-
-            <v-btn icon>
-              <v-icon>mdi-bookmark</v-icon>
-            </v-btn>
-
-            <v-btn icon>
-              <v-icon>mdi-share-variant</v-icon>
-            </v-btn>
-          </v-card-actions>
-        </template>
-        <SongTracks :songid="song.id" />
-      </v-dialog>
-    </v-card>
-  </v-list>
+          <v-btn icon @click="deleteSong(song.id)">
+            <v-icon>mdi-delete</v-icon>
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+      <v-btn @click="mixSong">dafafae</v-btn>
+    </v-list>
+    <v-container v-if="loading">
+      <v-row justify="center" class="pa-md-12 mx-lg-auto">
+        <v-col cols="6">
+          <v-progress-linear
+            color="deep-purple accent-4"
+            indeterminate
+            rounded
+            height="6"
+          ></v-progress-linear> </v-col
+      ></v-row>
+    </v-container>
+  </v-container>
 </template>
 
 <script>
 import useMoralis from "@/services/useMoralis.js";
+import { onMounted } from "~/composition";
+import { mapMutations } from "vuex";
 export default {
-  data() {
-    return {
-      dialog: false,
-    };
+  methods: {
+    ...mapMutations(["SET_song"]),
+    goToSong(song) {
+      console.log("songssssssss", song);
+      this.SET_song(song);
+      this.$router.push("/song");
+    },
   },
   setup() {
-    const { getSongs, songs } = useMoralis();
+    const { getSongs, songs, deleteSong, mixSong, loading } = useMoralis();
 
-    getSongs();
-
-    return { songs };
-  },
-  methods: {
-    goToSong(id) {
-      console.log("song id from method", id);
-      this.$router.push("/song/");
-    },
+    onMounted(() => {
+      getSongs();
+      console.log(songs, "songss");
+    });
+    return { songs, deleteSong, mixSong, loading };
   },
 };
 </script>

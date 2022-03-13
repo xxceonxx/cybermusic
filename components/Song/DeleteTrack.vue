@@ -14,7 +14,7 @@
         </v-col>
       </v-list-item-icon></template
     >
-    <v-container>
+    <v-container v-if="!loading">
       <v-toolbar
         ><v-toolbar-title>Are you sure to delte this track?</v-toolbar-title
         ><v-spacer></v-spacer>
@@ -30,14 +30,32 @@
         </v-container>
       </v-card>
       <v-row justify="center">
-        <v-btn color="red">delete</v-btn>
+        <v-btn color="red" @click="deleteTrack(trackId, songId)">delete</v-btn>
       </v-row></v-container
     >
+
+     <v-container v-if="loading">
+          <v-row justify="center" class="pa-md-12 mx-lg-auto">
+            <v-col cols="6">
+              <v-progress-linear
+                color="deep-purple accent-4"
+                indeterminate
+                rounded
+                height="6"
+              ></v-progress-linear> </v-col
+          ></v-row>
+        </v-container>
   </v-dialog>
 </template>
 
 <script>
+import useMoralis from "@/services/useMoralis.js";
 export default {
+  props: ["trackId", "songId"],
+  setup() {
+     const { deleteTrack, loading } = useMoralis();
+     return {deleteTrack, loading}
+  },
   data() {
     return {
       dialog: false,

@@ -55,7 +55,7 @@
 
       <v-row justify="center"
         ><v-col md="4">
-          <v-btn block color="green" @click="createSong(name, duration, bpm)">
+          <v-btn block color="green" @click="createsong(name, duration, bpm)">
             Create
           </v-btn></v-col
         ></v-row
@@ -66,6 +66,7 @@
 
 <script>
 import useMoralis from "@/services/useMoralis.js";
+import { watchEffect } from "@vue/composition-api";
 export default {
   data() {
     return {
@@ -76,10 +77,17 @@ export default {
     };
   },
   setup() {
-    if (process.client) {
-      const { createSong } = useMoralis();
-      return { createSong };
+    const { createSong } = useMoralis();
+    function createsong(name, duration, bpm) {
+      createSong(name, duration, bpm)
+        .then((res) => {
+          /* change page */
+        })
+        .catch((err) => {
+          console.log(err);
+        });
     }
+    return { createsong };
   },
 };
 </script>

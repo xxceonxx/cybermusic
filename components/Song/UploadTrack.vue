@@ -9,36 +9,44 @@
       <v-list-item-icon class="pl-10" v-bind="attrs" v-on="on">
         <v-col>
           <v-btn icon>
-            <v-icon color="green">mdi-plus-thick</v-icon>
+            <v-icon color="green">mdi-upload</v-icon>
           </v-btn>
         </v-col>
       </v-list-item-icon></template
     >
 
-    <v-container>
-      <v-card
-        ><v-toolbar
-          ><v-toolbar-title>Upload a new file</v-toolbar-title
-          ><v-spacer></v-spacer>
-          <v-toolbar-items>
-            <v-btn icon dark @click="dialog = false"
-              ><v-icon>mdi-close-thick</v-icon>
-            </v-btn>
-          </v-toolbar-items>
-        </v-toolbar>
+    <v-card>
+      <v-toolbar>
+        <v-toolbar-title>Upload a new file</v-toolbar-title
+        ><v-spacer></v-spacer>
+        <v-toolbar-items>
+          <v-btn icon dark @click="dialog = false"
+            ><v-icon>mdi-close-thick</v-icon>
+          </v-btn>
+        </v-toolbar-items>
+      </v-toolbar>
+      <v-container v-if="!loading">
         <v-col>
           <v-container>
             <v-form>
               <v-file-input @change="selectFile" type="file"></v-file-input>
-              <v-btn @click="createTrack(instrument, file, songid)">Submit</v-btn>
+              <v-btn @click="uploadTrack(file, trackId, songId)">Upload </v-btn>
             </v-form>
           </v-container>
         </v-col>
-        <v-row justify="center">
-          <v-btn color="green">create</v-btn>
-        </v-row></v-card
-      >
-    </v-container>
+      </v-container>
+      <v-container v-if="loading">
+        <v-row justify="center" class="pa-md-12 mx-lg-auto">
+          <v-col cols="6">
+            <v-progress-linear
+              color="deep-purple accent-4"
+              indeterminate
+              rounded
+              height="6"
+            ></v-progress-linear> </v-col
+        ></v-row>
+      </v-container>
+    </v-card>
   </v-dialog>
 </template>
 
@@ -50,8 +58,8 @@ import useMoralis from "@/services/useMoralis.js";
 export default {
   setup() {
     if (process.client) {
-      const { createTrack, getSongById } = useMoralis();
-      return { createTrack, getSongById };
+      const { uploadTrack, getSongById, loading } = useMoralis();
+      return { uploadTrack, getSongById, loading };
     }
   },
   data() {
@@ -61,7 +69,7 @@ export default {
       file: undefined,
     };
   },
-  props: ["songid"],
+  props: ["trackId", "songId"],
   methods: {
     selectFile(file) {
       console.log(this.songid);

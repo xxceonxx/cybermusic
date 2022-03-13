@@ -23,25 +23,44 @@
         </v-toolbar-items>
       </v-toolbar>
       <v-card>
-        <v-container>
+        <v-container v-if="!loading">
           <v-form ref="form">
             <v-row>
-              <v-text-field
-                v-model="instrument"
-                label="Instrument"
-                single-line
-              ></v-text-field
+              <v-col>
+                <v-select
+                  :items="instruments"
+                  label="Instrument"
+                  dense
+                  v-model="instrument"
+                ></v-select>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col>
+                <v-file-input
+                  @change="selectFile"
+                  type="file"
+                ></v-file-input></v-col
             ></v-row>
-            <v-file-input @change="selectFile" type="file"></v-file-input>
           </v-form>
+          <v-row justify="center">
+            <v-btn color="green" @click="createTrack(instrument, file, songid)"
+              >create</v-btn
+            >
+          </v-row>
+        </v-container>
+        <v-container v-if="loading">
+          <v-row justify="center" class="pa-md-12 mx-lg-auto">
+            <v-col cols="6">
+              <v-progress-linear
+                color="deep-purple accent-4"
+                indeterminate
+                rounded
+                height="6"
+              ></v-progress-linear> </v-col
+          ></v-row>
         </v-container>
       </v-card>
-
-      <v-row justify="center">
-        <v-btn color="green" @click="createTrack(instrument, file, songid)"
-          >create</v-btn
-        >
-      </v-row>
     </v-container>
   </v-dialog>
 </template>
@@ -53,13 +72,27 @@ export default {
     return {
       dialog: false,
       instrument: "",
+      instruments: [
+        "Bass",
+        "AGuitar",
+        "EGuitar",
+        "Drum",
+        "Harp",
+        "Flute",
+        "Percussion",
+        "Piano",
+        "Saxophone",
+        "Triangle",
+        "Violin",
+        "Vocals",
+      ],
     };
   },
   props: ["songid"],
   setup() {
     if (process.client) {
-      const { createTrack } = useMoralis();
-      return { createTrack };
+      const { createTrack, loading } = useMoralis();
+      return { createTrack, loading };
     }
   },
   methods: {
