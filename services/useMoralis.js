@@ -543,8 +543,9 @@ export default function useMoralis() {
     querySong.matchesQuery("tracks", queryTrack);
     querySong.include(["tracks.attributes.instrument"]);
     const result = await querySong.find();
-
+    console.log(track[0], "track 0");
     if (track[0]) {
+      console.log("we got here")
       //set track editor
       track[0].set("editor", currentUser);
       track[0].set("status", "editing");

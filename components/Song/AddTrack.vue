@@ -44,7 +44,7 @@
             ></v-row>
           </v-form>
           <v-row justify="center">
-            <v-btn color="green" @click="createTrack(instrument, file, songid)"
+            <v-btn color="green" @click="addTrack(instrument, file, songid)"
               >create</v-btn
             >
           </v-row>
@@ -91,11 +91,19 @@ export default {
   props: ["songid"],
   setup() {
     if (process.client) {
-      const { createTrack, loading } = useMoralis();
-      return { createTrack, loading };
+      const { loading } = useMoralis();
+      return { loading };
     }
   },
   methods: {
+    addTrack(instrument, file, songid) {
+      const { createTrack } = useMoralis();
+      createTrack(instrument, file, songid).then((res) => {
+        this.dialog = false;
+        this.file = null;
+        this.instrument = ""
+      });
+    },
     selectFile(file) {
       console.log(this.songid);
       console.log(file);
