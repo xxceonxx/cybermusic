@@ -1,0 +1,63 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { getDb } from "@/lib/db";
+import { v4 as uuidv4 } from "uuid";
+
+const COVER_IMAGES = [
+  "https://gateway.pinata.cloud/ipfs/QmTSwYWnnB9LW4bCKqyaAg7vrYhdoLLevzAchQaGg3PPzt",
+  "https://gateway.pinata.cloud/ipfs/QmTSmz3MWt2F5Kcz4vktxoepLqRg6kwikvb2fus9wWRE6S",
+  "https://gateway.pinata.cloud/ipfs/QmXPCTmUoTPUbW1hN5KFNv8pehjUAVxTZ5TQEHLtHCcTUL",
+  "https://gateway.pinata.cloud/ipfs/QmX46PtZorWJrzCk34WSitPW4XK6a1S2Gc6BDDgkj115ok",
+  "https://gateway.pinata.cloud/ipfs/QmVXcnCyKQ3vSqgsExfuJcuKwSADZ9s66MxjuvRzSLehYG",
+  "https://gateway.pinata.cloud/ipfs/QmUS5ukGNj4kbYH6hnfu6Eg6Q9d6GgsEP2gfkjVCQT856p",
+  "https://gateway.pinata.cloud/ipfs/QmNfGsPqVaiKfKZNbY48Epdafp4GERJZHgFkazDE9bNPZG",
+];
+
+// GET /api/songs?creator=userId
+export async function GET(req: NextRequest) {
+  const db = getDb();
+  const creatorId = req.nextUrl.searchParams.get("creator");
+
+  if (creatorId) {
+    const songs = db
+      .prepare("SELECT * FROM songs WHERE creator_id = ? ORDER BY created_at DESC")
+      .all(creatorId);
+    return NextResponse.json(songs);
+  }
+
+  // Return all open songs (for slot machine / discovery)
+  const songs = db
+    .prepare("SELECT * FROM songs WHERE status = 'open' ORDER BY created_at DESC")
+    .all();
+  return NextResponse.json(songs);
+}
+
+// POST /api/songs
+export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await req.json();
+  const { name, duration, bpm } = body;
+
+  if (!name || !duration || !bpm) {
+    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  }
+
+  const db = getDb();
+  const image = COVER_IMAGES[Math.floor(Math.random() * COVER_IMAGES.length)];
+
+  const result = db
+    .prepare(
+      "INSERT INTO songs (name, duration, bpm, image, creator_id) VALUES (?, ?, ?, ?, ?)"
+    )
+    .run(name, duration, bpm, image, session.user.id);
+
+  const song = db
+    .prepare("SELECT * FROM songs WHERE id = ?")
+    .get(result.lastInsertRowid);
+
+  return NextResponse.json(song, { status: 201 });
+}
