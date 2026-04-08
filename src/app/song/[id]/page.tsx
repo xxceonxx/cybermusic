@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useApi } from "@/hooks/useApi";
 import { TrackList } from "@/components/Song/TrackList";
 import { AddTrackDialog } from "@/components/Song/AddTrackDialog";
+import { CreateNFT } from "@/components/Song/CreateNFT";
 import type { Song, Track } from "@/types";
 
 type SongWithTracks = Song & { tracks: Track[] };
@@ -105,6 +106,8 @@ export default function SongDetail() {
         onTrackUpdated={handleTrackUpdated}
         onTrackDeleted={handleTrackDeleted}
       />
+
+      {isOwner && <CreateNFT song={song} tracks={song.tracks} />}
 
       <AddTrackDialog
         open={showAddTrack}
