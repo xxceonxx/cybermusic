@@ -6,9 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "pages:dev": "npx wrangler pages dev .vercel/output/static --compatibility-date=2024-01-01 --compatibility-flag=nodejs_compat"
   },
   "dependencies": {
+    "@cloudflare/next-on-pages": "^1.13.16",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@rive-app/react-canvas": "^4.27.3",
     "@tanstack/react-query": "^5.96.2",

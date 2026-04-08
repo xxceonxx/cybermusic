@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cybermusic
 
-## Getting Started
+Web3 music collaboration platform. Create songs with people around the world, then mint the result as an NFT.
 
-First, run the development server:
+Originally built for an [ethglobal hackathon](https://github.com/xxceonxx/cybermusic). This is the v2 rewrite with a modern stack.
+
+## How it works
+
+1. **Create a Song** — Set name, BPM, and duration
+2. **Add Instrument Tracks** — Bass, Guitar, Drums, Piano, Vocals, and more
+3. **Slot Machine** — Spin to get matched to an open track in someone else's song
+4. **Upload Audio** — Record or upload your instrument contribution
+5. **Mix** — All tracks get mixed in the browser
+6. **Mint NFT** — Optionally mint the finished song as an ERC-1155 NFT on Base
+
+Wallet is **optional** — you can collaborate without one. Only the NFT mint step requires a wallet.
+
+## Tech Stack
+
+| Layer | Tech |
+|---|---|
+| Frontend | React, Next.js 16, TypeScript, Tailwind CSS |
+| Auth | Auth.js (SIWE wallet + Email/OAuth) |
+| Wallet | wagmi, viem, RainbowKit, WalletConnect |
+| Database | SQLite (local) / Cloudflare D1 (production) |
+| Storage | IPFS via Pinata |
+| Smart Contract | Solidity ERC-1155, Hardhat, Base chain |
+| Hosting | Cloudflare Pages |
+
+## Setup
 
 ```bash
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.local.example .env.local
+# Fill in: NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID, NEXTAUTH_SECRET, PINATA_JWT
+
+# Run dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Smart Contract
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cd contracts
+npm install
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Run tests
+npx hardhat test
 
-## Learn More
+# Deploy to Base Sepolia
+DEPLOYER_PRIVATE_KEY=0x... npx hardhat run scripts/deploy.ts --network base-sepolia
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+  app/              — Next.js App Router pages
+    api/            — API route handlers (songs, tracks, auth, IPFS)
+  components/       — React components
+    Song/           — SongList, TrackList, NewSong, AddTrack, CreateNFT
+    SlotMachine/    — ChooseInstrument, SlotMachine (Rive animation)
+  hooks/            — Custom hooks (useApi, useContract, usePlayer, etc.)
+  types/            — TypeScript types
+  config/           — wagmi config, contract ABI
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+contracts/          — Hardhat project
+  contracts/        — CyberMusic.sol (ERC-1155)
+  test/             — Contract tests (8 tests)
+  scripts/          — Deploy script
 
-## Deploy on Vercel
+db/
+  migrations/       — D1/SQLite schema
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Architecture
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Hybrid: off-chain collaboration, on-chain ownership.**
+
+- Song/track creation, slot machine matching → instant, free (SQLite/D1)
+- Audio files → IPFS via Pinata (proxied through API route)
+- NFT minting → smart contract on Base (single wallet transaction)
+- Auth → dual: wallet (SIWE) or email/OAuth. Wallet can be connected later.
