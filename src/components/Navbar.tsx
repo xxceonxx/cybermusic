@@ -20,8 +20,8 @@ export function Navbar() {
               <Link href="/main" className="hover:text-white transition">
                 Dashboard
               </Link>
-              <Link href="/overview" className="hover:text-white transition">
-                Songs
+              <Link href="/discover" className="hover:text-white transition">
+                Discover
               </Link>
             </div>
           )}
