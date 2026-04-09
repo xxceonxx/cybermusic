@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/hooks/useAuth";
 import { useApi } from "@/hooks/useApi";
 import { TrackList } from "@/components/Song/TrackList";
 import { AddTrackDialog } from "@/components/Song/AddTrackDialog";
@@ -14,13 +14,13 @@ type SongWithTracks = Song & { tracks: Track[] };
 export default function SongDetail() {
   const params = useParams();
   const router = useRouter();
-  const { data: session } = useSession();
+  const { userId } = useAuth();
   const { fetchSong } = useApi();
   const [song, setSong] = useState<SongWithTracks | null>(null);
   const [showAddTrack, setShowAddTrack] = useState(false);
 
   const songId = Number(params.id);
-  const isOwner = session?.user?.id === song?.creatorId;
+  const isOwner = userId === song?.creatorId;
 
   useEffect(() => {
     if (songId) {

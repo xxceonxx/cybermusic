@@ -1,30 +1,30 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { useApi } from "@/hooks/useApi";
 import { NewSongDialog } from "@/components/Song/NewSongDialog";
 import { SongList } from "@/components/Song/SongList";
 import type { Song } from "@/types";
 
 export default function Dashboard() {
-  const { data: session } = useSession();
+  const { isLoggedIn, userId } = useAuth();
   const { fetchSongs } = useApi();
   const [songs, setSongs] = useState<Song[]>([]);
   const [showNewSong, setShowNewSong] = useState(false);
 
   useEffect(() => {
-    if (session?.user?.id) {
-      fetchSongs(session.user.id).then(setSongs);
+    if (userId) {
+      fetchSongs(userId).then(setSongs);
     }
-  }, [session, fetchSongs]);
+  }, [userId, fetchSongs]);
 
   const handleSongCreated = (song: Song) => {
     setSongs((prev) => [song, ...prev]);
     setShowNewSong(false);
   };
 
-  if (!session) {
+  if (!isLoggedIn) {
     return (
       <div className="flex items-center justify-center flex-1 text-zinc-500">
         Please login to access your dashboard

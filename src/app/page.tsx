@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/hooks/useAuth";
 import { ChooseInstrument } from "@/components/SlotMachine/ChooseInstrument";
 import { SlotMachine } from "@/components/SlotMachine/SlotMachine";
 import type { Instrument } from "@/types";
 
 export default function Home() {
-  const { data: session } = useSession();
+  const { isLoggedIn, isLoading } = useAuth();
   const [locked, setLocked] = useState<Instrument[]>([]);
 
-  if (!session) {
+  if (isLoading) return null;
+
+  if (!isLoggedIn) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 px-4 py-16">
         <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-center">
