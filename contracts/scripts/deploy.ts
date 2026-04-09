@@ -1,27 +1,20 @@
 import hre from "hardhat";
 
 async function main() {
+  console.log("Deploying CyberMusic...");
+
   const CyberMusic = await hre.ethers.getContractFactory("CyberMusic");
   const contract = await CyberMusic.deploy();
+
+  console.log("Waiting for deployment...");
   await contract.waitForDeployment();
 
   const address = await contract.getAddress();
-  console.log(`CyberMusic deployed to: ${address}`);
-
-  if (hre.network.name !== "hardhat") {
-    console.log("Waiting for confirmations...");
-    await contract.deploymentTransaction()?.wait(5);
-
-    console.log("Verifying on Basescan...");
-    await hre.run("verify:verify", {
-      address,
-      constructorArguments: [],
-    });
-    console.log("Verified!");
-  }
+  console.log(`\n✅ CyberMusic deployed to: ${address}\n`);
+  console.log(`View on Basescan: https://sepolia.basescan.org/address/${address}`);
 }
 
 main().catch((error) => {
-  console.error(error);
+  console.error("Deploy failed:", error);
   process.exitCode = 1;
 });
