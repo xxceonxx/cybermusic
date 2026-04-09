@@ -2,12 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/hooks/useAuth";
 import { useApi } from "@/hooks/useApi";
-import { TrackList } from "@/components/Song/TrackList";
 import { AddTrackDialog } from "@/components/Song/AddTrackDialog";
 import { CreateNFT } from "@/components/Song/CreateNFT";
 import type { Song, Track } from "@/types";
+
+// DAW uses WaveSurfer which needs browser APIs — load client-only
+const DAW = dynamic(() => import("@/components/DAW/DAW").then((m) => m.DAW), {
+  ssr: false,
+  loading: () => (
+    <div className="h-40 bg-zinc-900 rounded-xl flex items-center justify-center text-zinc-500">
+      Loading DAW...
+    </div>
+  ),
+});
 
 type SongWithTracks = Song & { tracks: Track[] };
 
@@ -24,7 +34,7 @@ export default function SongDetail() {
 
   useEffect(() => {
     if (songId) {
-      fetchSong(songId).then(setSong).catch(() => router.push("/overview"));
+      fetchSong(songId).then(setSong).catch(() => router.push("/discover"));
     }
   }, [songId, fetchSong, router]);
 
@@ -63,7 +73,7 @@ export default function SongDetail() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="max-w-6xl mx-auto px-4 py-8">
       <button
         onClick={() => router.back()}
         className="text-zinc-400 hover:text-white mb-6 text-sm"
@@ -71,23 +81,36 @@ export default function SongDetail() {
         &larr; Back
       </button>
 
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">{song.name}</h1>
-          <p className="text-zinc-400 mt-1">
-            {song.bpm} BPM &middot; {song.duration}s &middot;{" "}
-            <span
-              className={
-                song.status === "minted"
-                  ? "text-green-400"
-                  : song.status === "open"
-                  ? "text-yellow-400"
-                  : "text-blue-400"
-              }
-            >
-              {song.status}
-            </span>
-          </p>
+      {/* Song Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center gap-4">
+          {song.image && (
+            <div className="w-16 h-16 rounded-xl overflow-hidden bg-zinc-800 flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={song.image}
+                alt={song.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+          <div>
+            <h1 className="text-2xl font-bold">{song.name}</h1>
+            <p className="text-zinc-400 text-sm mt-0.5">
+              {song.bpm} BPM &middot; {song.duration}s &middot;{" "}
+              <span
+                className={
+                  song.status === "minted"
+                    ? "text-green-400"
+                    : song.status === "open"
+                    ? "text-yellow-400"
+                    : "text-blue-400"
+                }
+              >
+                {song.status}
+              </span>
+            </p>
+          </div>
         </div>
         {isOwner && song.status === "open" && (
           <button
@@ -99,16 +122,20 @@ export default function SongDetail() {
         )}
       </div>
 
-      <TrackList
+      {/* DAW */}
+      <DAW
         tracks={song.tracks}
-        isOwner={isOwner}
         songId={songId}
+        duration={song.duration}
+        isOwner={isOwner}
         onTrackUpdated={handleTrackUpdated}
         onTrackDeleted={handleTrackDeleted}
       />
 
+      {/* NFT Mint Section */}
       {isOwner && <CreateNFT song={song} tracks={song.tracks} />}
 
+      {/* Add Track Dialog */}
       <AddTrackDialog
         open={showAddTrack}
         onClose={() => setShowAddTrack(false)}

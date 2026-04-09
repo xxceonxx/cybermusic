@@ -18,18 +18,22 @@ export async function GET(req: NextRequest) {
   const db = getDb();
   const creatorId = req.nextUrl.searchParams.get("creator");
 
-  if (creatorId) {
-    const songs = db
-      .prepare("SELECT * FROM songs WHERE creator_id = ? ORDER BY created_at DESC")
-      .all(creatorId);
-    return NextResponse.json(songs);
-  }
+  const query = creatorId
+    ? "SELECT * FROM songs WHERE creator_id = ? ORDER BY created_at DESC"
+    : "SELECT * FROM songs ORDER BY created_at DESC";
+  const params = creatorId ? [creatorId] : [];
 
-  // Return all open songs (for slot machine / discovery)
-  const songs = db
-    .prepare("SELECT * FROM songs WHERE status = 'open' ORDER BY created_at DESC")
-    .all();
-  return NextResponse.json(songs);
+  const songs = db.prepare(query).all(...params) as { id: number }[];
+
+  // Attach track counts for each song
+  const songsWithTracks = songs.map((song) => {
+    const tracks = db
+      .prepare("SELECT id, instrument, status FROM tracks WHERE song_id = ?")
+      .all(song.id);
+    return { ...song, tracks };
+  });
+
+  return NextResponse.json(songsWithTracks);
 }
 
 // POST /api/songs
