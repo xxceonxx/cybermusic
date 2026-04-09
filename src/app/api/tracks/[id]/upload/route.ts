@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getUserId } from "@/lib/api-auth";
 import { getDb } from "@/lib/db";
 
 // PUT /api/tracks/[id]/upload — Set IPFS URL after upload
@@ -8,8 +8,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getUserId(req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -29,8 +29,8 @@ export async function PUT(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const isOwner = track.creator_id === session.user.id;
-  const isEditor = track.editor_id === session.user.id;
+  const isOwner = track.creator_id === userId;
+  const isEditor = track.editor_id === userId;
   if (!isOwner && !isEditor) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getUserId } from "@/lib/api-auth";
 import { getDb } from "@/lib/db";
 
 // PUT /api/tracks/[id]/claim — Claim a track (slot machine)
@@ -8,8 +8,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getUserId(_req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -27,7 +27,7 @@ export async function PUT(
 
   db.prepare(
     "UPDATE tracks SET editor_id = ?, status = 'editing' WHERE id = ?"
-  ).run(session.user.id, id);
+  ).run(userId, id);
 
   const updated = db.prepare("SELECT * FROM tracks WHERE id = ?").get(id);
   return NextResponse.json(updated);

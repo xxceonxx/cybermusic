@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getUserId } from "@/lib/api-auth";
 import { getDb } from "@/lib/db";
 
 // DELETE /api/tracks/[id]
@@ -8,8 +8,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getUserId(_req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -21,7 +21,7 @@ export async function DELETE(
   if (!track) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  if (track.creator_id !== session.user.id) {
+  if (track.creator_id !== userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

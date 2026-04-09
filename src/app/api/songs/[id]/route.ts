@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getUserId } from "@/lib/api-auth";
 import { getDb } from "@/lib/db";
 
 // GET /api/songs/[id] — Song with tracks
@@ -28,8 +28,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getUserId(_req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -41,7 +41,7 @@ export async function DELETE(
   if (!song) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  if (song.creator_id !== session.user.id) {
+  if (song.creator_id !== userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (song.status === "minted") {
@@ -60,8 +60,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getUserId(req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -73,7 +73,7 @@ export async function PATCH(
   if (!song) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  if (song.creator_id !== session.user.id) {
+  if (song.creator_id !== userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

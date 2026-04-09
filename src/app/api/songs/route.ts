@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getUserId } from "@/lib/api-auth";
 import { getDb } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 
@@ -34,8 +34,8 @@ export async function GET(req: NextRequest) {
 
 // POST /api/songs
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await getUserId(req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     .prepare(
       "INSERT INTO songs (name, duration, bpm, image, creator_id) VALUES (?, ?, ?, ?, ?)"
     )
-    .run(name, duration, bpm, image, session.user.id);
+    .run(name, duration, bpm, image, userId);
 
   const song = db
     .prepare("SELECT * FROM songs WHERE id = ?")
