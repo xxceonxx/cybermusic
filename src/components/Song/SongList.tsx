@@ -113,6 +113,14 @@ export function SongList({ songs, onDelete }: SongListProps) {
               </h3>
               <p className="text-sm text-zinc-400 mt-1">
                 {song.bpm} BPM &middot; {song.duration}s &middot; {totalTracks} track{totalTracks !== 1 ? "s" : ""}
+                {(song.plays ?? 0) > 0 && (
+                  <span className="ml-1.5 text-zinc-500">&middot; {song.plays} play{song.plays !== 1 ? "s" : ""}</span>
+                )}
+                {song.genre && (
+                  <span className="ml-1.5 text-xs px-1.5 py-0.5 bg-zinc-800 rounded-full text-zinc-400">
+                    {song.genre}
+                  </span>
+                )}
               </p>
 
               {/* Instrument chips */}

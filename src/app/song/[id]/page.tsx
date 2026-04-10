@@ -223,6 +223,7 @@ export default function SongDetail() {
         tracks={song.tracks}
         songId={songId}
         duration={song.duration}
+        bpm={song.bpm}
         isOwner={isOwner}
         onTrackUpdated={handleTrackUpdated}
         onTrackDeleted={handleTrackDeleted}

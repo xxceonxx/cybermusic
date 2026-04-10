@@ -6,6 +6,7 @@ import { TrackControls } from "./TrackControls";
 import { useApi } from "@/hooks/useApi";
 import { useIpfs } from "@/hooks/useIpfs";
 import { useRecorder } from "@/hooks/useRecorder";
+import { useMetronome } from "@/hooks/useMetronome";
 import { useToast } from "@/components/ui/Toast";
 import { TrackEffects, DEFAULT_EFFECTS, type EffectValues } from "./TrackEffects";
 import type { Track } from "@/types";
@@ -23,6 +24,7 @@ interface DAWProps {
   tracks: Track[];
   songId: number;
   duration: number;
+  bpm: number;
   isOwner: boolean;
   onTrackUpdated: (track: Track) => void;
   onTrackDeleted: (trackId: number) => void;
@@ -34,6 +36,7 @@ export function DAW({
   tracks,
   songId,
   duration,
+  bpm,
   isOwner,
   onTrackUpdated,
   onTrackDeleted,
@@ -47,6 +50,9 @@ export function DAW({
   const [isDragging, setIsDragging] = useState(false);
   const [dragOverTrackId, setDragOverTrackId] = useState<number | null>(null);
   const [uploadingTrackId, setUploadingTrackId] = useState<number | null>(null);
+  const [trackOrder, setTrackOrder] = useState<number[]>([]);
+  const [dragSourceId, setDragSourceId] = useState<number | null>(null);
+  const [dragOverId, setDragOverId] = useState<number | null>(null);
 
   const waveformRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const wavesurferRefs = useRef<Map<number, WaveSurfer>>(new Map());
@@ -54,6 +60,7 @@ export function DAW({
   const waveformAreaRef = useRef<HTMLDivElement>(null);
   const animFrameRef = useRef<number>(0);
   const wasPlayingRef = useRef(false);
+  const hasCountedPlayRef = useRef(false);
 
   const [recordingTrackId, setRecordingTrackId] = useState<number | null>(null);
   const [fxOpenTrackId, setFxOpenTrackId] = useState<number | null>(null);
@@ -61,6 +68,7 @@ export function DAW({
   const { uploadTrack, deleteTrack } = useApi();
   const { uploading, uploadFile } = useIpfs();
   const { recording, recordingTime, startRecording, stopRecording, cancelRecording } = useRecorder();
+  const { metronomeActive, toggleMetronome, stopMetronome } = useMetronome();
   const { toast } = useToast();
 
   // --- Timeline ruler ---
@@ -163,6 +171,36 @@ export function DAW({
     []
   );
 
+  // --- Track ordering ---
+  useEffect(() => {
+    setTrackOrder((prev) => {
+      const currentIds = new Set(tracks.map((t) => t.id));
+      const kept = prev.filter((id) => currentIds.has(id));
+      const newIds = tracks.map((t) => t.id).filter((id) => !kept.includes(id));
+      return [...kept, ...newIds];
+    });
+  }, [tracks]);
+
+  const orderedTracks = trackOrder.length > 0
+    ? trackOrder.map((id) => tracks.find((t) => t.id === id)).filter(Boolean) as Track[]
+    : tracks;
+
+  const handleDragEnd = useCallback(() => {
+    if (dragSourceId !== null && dragOverId !== null && dragSourceId !== dragOverId) {
+      setTrackOrder((prev) => {
+        const next = [...prev];
+        const fromIdx = next.indexOf(dragSourceId);
+        const toIdx = next.indexOf(dragOverId);
+        if (fromIdx === -1 || toIdx === -1) return prev;
+        next.splice(fromIdx, 1);
+        next.splice(toIdx, 0, dragSourceId);
+        return next;
+      });
+    }
+    setDragSourceId(null);
+    setDragOverId(null);
+  }, [dragSourceId, dragOverId]);
+
   // --- Sync track data into trackStates (without touching WaveSurfer) ---
   useEffect(() => {
     setTrackStates((prev) => {
@@ -227,6 +265,11 @@ export function DAW({
       ts.wavesurfer.play();
     });
     setPlaying(true);
+    // Count play once per session
+    if (!hasCountedPlayRef.current) {
+      hasCountedPlayRef.current = true;
+      fetch(`/api/songs/${songId}/play`, { method: "POST" }).catch(() => {});
+    }
   }, [trackStates]);
 
   const pauseAll = useCallback(() => {
@@ -238,7 +281,8 @@ export function DAW({
     trackStates.forEach((ts) => ts.wavesurfer?.stop());
     setPlaying(false);
     setCurrentTime(0);
-  }, [trackStates]);
+    stopMetronome();
+  }, [trackStates, stopMetronome]);
 
   const seekAll = useCallback(
     (progress: number) => {
@@ -484,6 +528,19 @@ export function DAW({
               </svg>
             )}
           </button>
+          <button
+            onClick={() => toggleMetronome(bpm)}
+            className={`w-8 h-8 flex items-center justify-center rounded-md transition text-xs font-bold ${
+              metronomeActive
+                ? "bg-orange-500/20 text-orange-400 border border-orange-500/40"
+                : "bg-zinc-800 hover:bg-zinc-700 text-zinc-500 hover:text-zinc-300"
+            }`}
+            title={`Metronome ${bpm} BPM`}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 1L3 14h10L8 1zm0 4l2.5 7h-5L8 5z" />
+            </svg>
+          </button>
         </div>
 
         <div className="w-px h-8 bg-zinc-800" />
@@ -521,7 +578,7 @@ export function DAW({
               Tracks
             </span>
           </div>
-          {tracks.map((track) => {
+          {orderedTracks.map((track) => {
             const ts = trackStates.get(track.id);
             return (
               <TrackControls
@@ -542,6 +599,10 @@ export function DAW({
                 onFx={() => setFxOpenTrackId(fxOpenTrackId === track.id ? null : track.id)}
                 fxActive={(() => { const fx = trackEffects.get(track.id); return !!fx && JSON.stringify(fx) !== JSON.stringify(DEFAULT_EFFECTS); })()}
                 onDelete={() => handleDelete(track.id)}
+                onDragStart={() => setDragSourceId(track.id)}
+                onDragOver={() => setDragOverId(track.id)}
+                onDragEnd={handleDragEnd}
+                isDragOver={dragOverId === track.id && dragSourceId !== track.id}
                 isOwner={isOwner}
               />
             );
@@ -591,7 +652,7 @@ export function DAW({
           />
 
           {/* Waveform rows */}
-          {tracks.map((track) => {
+          {orderedTracks.map((track) => {
             const isUploadingThis = uploadingTrackId === track.id;
             const isRecordingThis = recording && recordingTrackId === track.id;
             return (

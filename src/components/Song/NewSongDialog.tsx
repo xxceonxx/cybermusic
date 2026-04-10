@@ -5,6 +5,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { useApi } from "@/hooks/useApi";
 import { useIpfs } from "@/hooks/useIpfs";
 import { useToast } from "@/components/ui/Toast";
+import { GENRES } from "@/types";
 import type { Song } from "@/types";
 
 interface NewSongDialogProps {
@@ -20,9 +21,11 @@ export function NewSongDialog({ open, onClose, onCreated }: NewSongDialogProps) 
   const [name, setName] = useState("");
   const [duration, setDuration] = useState(120);
   const [bpm, setBpm] = useState(120);
+  const [genre, setGenre] = useState("");
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const tapTimesRef = useRef<number[]>([]);
 
   const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -34,7 +37,7 @@ export function NewSongDialog({ open, onClose, onCreated }: NewSongDialogProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const song = await createSong({ name, duration, bpm });
+      const song = await createSong({ name, duration, bpm, genre: genre || undefined });
 
       // Upload custom cover if selected
       if (coverFile) {
@@ -46,6 +49,7 @@ export function NewSongDialog({ open, onClose, onCreated }: NewSongDialogProps) 
       setName("");
       setDuration(120);
       setBpm(120);
+      setGenre("");
       setCoverFile(null);
       setCoverPreview(null);
       onCreated(song);
@@ -85,9 +89,38 @@ export function NewSongDialog({ open, onClose, onCreated }: NewSongDialogProps) 
         </div>
 
         <div>
-          <label className="block text-sm text-zinc-400 mb-1">
-            BPM: {bpm}
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-sm text-zinc-400">
+              BPM: {bpm}
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                const now = Date.now();
+                const taps = tapTimesRef.current;
+                // Reset if last tap was more than 2s ago
+                if (taps.length > 0 && now - taps[taps.length - 1] > 2000) {
+                  tapTimesRef.current = [];
+                }
+                taps.push(now);
+                if (taps.length >= 2) {
+                  // Average intervals
+                  const intervals = [];
+                  for (let i = 1; i < taps.length; i++) {
+                    intervals.push(taps[i] - taps[i - 1]);
+                  }
+                  const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+                  const detected = Math.round(60000 / avg);
+                  if (detected >= 60 && detected <= 300) setBpm(detected);
+                }
+                // Keep last 8 taps
+                if (taps.length > 8) taps.shift();
+              }}
+              className="px-3 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-md transition font-medium"
+            >
+              Tap
+            </button>
+          </div>
           <input
             type="range"
             min={60}
@@ -96,6 +129,20 @@ export function NewSongDialog({ open, onClose, onCreated }: NewSongDialogProps) 
             onChange={(e) => setBpm(Number(e.target.value))}
             className="w-full accent-green-500"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm text-zinc-400 mb-1">Genre (optional)</label>
+          <select
+            value={genre}
+            onChange={(e) => setGenre(e.target.value)}
+            className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg focus:outline-none focus:border-zinc-500"
+          >
+            <option value="">No genre</option>
+            {GENRES.map((g) => (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
         </div>
 
         <div>

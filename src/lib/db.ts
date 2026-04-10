@@ -30,6 +30,23 @@ export function getDb(): Database.Database {
       );
       db.exec(migration);
     }
+    // Migration 004: genre column
+    const songCols = db.prepare("PRAGMA table_info(songs)").all() as { name: string }[];
+    if (!songCols.find((c) => c.name === "genre")) {
+      const migration = fs.readFileSync(
+        path.join(process.cwd(), "db", "migrations", "004_genres.sql"),
+        "utf-8"
+      );
+      db.exec(migration);
+    }
+    // Migration 005: plays column
+    if (!songCols.find((c) => c.name === "plays")) {
+      const migration = fs.readFileSync(
+        path.join(process.cwd(), "db", "migrations", "005_plays.sql"),
+        "utf-8"
+      );
+      db.exec(migration);
+    }
     if (!tables.find((t) => t.name === "notifications")) {
       const migration = fs.readFileSync(
         path.join(process.cwd(), "db", "migrations", "003_notifications.sql"),

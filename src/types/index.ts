@@ -15,6 +15,24 @@ export const INSTRUMENTS = [
 
 export type Instrument = (typeof INSTRUMENTS)[number];
 
+export const GENRES = [
+  "Rock",
+  "Pop",
+  "Electronic",
+  "Hip Hop",
+  "Jazz",
+  "Classical",
+  "R&B",
+  "Folk",
+  "Metal",
+  "Ambient",
+  "Reggae",
+  "Latin",
+  "Other",
+] as const;
+
+export type Genre = (typeof GENRES)[number];
+
 export type SongStatus = "open" | "uploaded" | "meta" | "minted";
 export type TrackStatus = "open" | "editing" | "uploaded";
 export type AuthProvider = "siwe" | "email" | "google" | "github";
@@ -34,6 +52,8 @@ export interface Song {
   duration: number;
   bpm: number;
   image: string;
+  genre?: string | null;
+  plays?: number;
   creatorId: string;
   status: SongStatus;
   ipfsUrl?: string | null;

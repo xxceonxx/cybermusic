@@ -31,7 +31,7 @@ export function useApi() {
   }, []);
 
   const createSong = useCallback(
-    async (data: { name: string; duration: number; bpm: number }): Promise<Song> => {
+    async (data: { name: string; duration: number; bpm: number; genre?: string }): Promise<Song> => {
       setLoading(true);
       try {
         const res = await fetch("/api/songs", {

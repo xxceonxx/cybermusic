@@ -20,6 +20,10 @@ interface TrackControlsProps {
   onFx?: () => void;
   fxActive?: boolean;
   onDelete?: () => void;
+  onDragStart?: () => void;
+  onDragOver?: () => void;
+  onDragEnd?: () => void;
+  isDragOver?: boolean;
   isOwner: boolean;
 }
 
@@ -55,6 +59,10 @@ export function TrackControls({
   onFx,
   fxActive,
   onDelete,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  isDragOver,
   isOwner,
 }: TrackControlsProps) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -62,9 +70,27 @@ export function TrackControls({
 
   return (
     <div
-      className="flex items-center gap-2 px-2 border-b border-zinc-800/30 bg-zinc-900/70 hover:bg-zinc-900 transition-colors"
+      className={`flex items-center gap-2 px-2 border-b transition-colors ${
+        isDragOver
+          ? "border-emerald-500/40 bg-emerald-500/5"
+          : "border-zinc-800/30 bg-zinc-900/70 hover:bg-zinc-900"
+      }`}
       style={{ height }}
+      draggable={!!onDragStart}
+      onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; onDragStart?.(); }}
+      onDragOver={(e) => { e.preventDefault(); onDragOver?.(); }}
+      onDragEnd={() => onDragEnd?.()}
     >
+      {/* Drag handle */}
+      {onDragStart && (
+        <div className="flex-shrink-0 cursor-grab active:cursor-grabbing text-zinc-700 hover:text-zinc-500 transition">
+          <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
+            <circle cx="2" cy="2" r="1.2" /><circle cx="6" cy="2" r="1.2" />
+            <circle cx="2" cy="7" r="1.2" /><circle cx="6" cy="7" r="1.2" />
+            <circle cx="2" cy="12" r="1.2" /><circle cx="6" cy="12" r="1.2" />
+          </svg>
+        </div>
+      )}
       {/* Color indicator + instrument */}
       <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
         <div

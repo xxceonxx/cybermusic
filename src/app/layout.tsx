@@ -19,6 +19,9 @@ export const metadata: Metadata = {
     default: "Cybermusic — Make Music Together",
     template: "%s — Cybermusic",
   },
+  manifest: "/manifest.json",
+  themeColor: "#000000",
+  icons: { icon: "/icon.svg", apple: "/icon.svg" },
   description:
     "Create songs, collaborate with musicians worldwide, record in the browser, and mint as NFTs on Base.",
   openGraph: {

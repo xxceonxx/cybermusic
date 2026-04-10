@@ -84,7 +84,7 @@ export async function PATCH(
   }
 
   const body = await req.json();
-  const allowed = ["status", "ipfs_url", "meta_url", "name", "image", "bpm"];
+  const allowed = ["status", "ipfs_url", "meta_url", "name", "image", "bpm", "genre"];
   const updates: string[] = [];
   const values: unknown[] = [];
 

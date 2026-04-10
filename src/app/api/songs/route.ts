@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { name, duration, bpm } = body;
+  const { name, duration, bpm, genre } = body;
 
   if (!name || !duration || !bpm) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -55,9 +55,9 @@ export async function POST(req: NextRequest) {
 
   const result = db
     .prepare(
-      "INSERT INTO songs (name, duration, bpm, image, creator_id) VALUES (?, ?, ?, ?, ?)"
+      "INSERT INTO songs (name, duration, bpm, image, creator_id, genre) VALUES (?, ?, ?, ?, ?, ?)"
     )
-    .run(name, duration, bpm, image, userId);
+    .run(name, duration, bpm, image, userId, genre || null);
 
   const song = db
     .prepare("SELECT * FROM songs WHERE id = ?")

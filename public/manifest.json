@@ -1,0 +1,16 @@
+{
+  "name": "Cybermusic",
+  "short_name": "Cybermusic",
+  "description": "Create music together — collaborate, record, and mint as NFTs",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

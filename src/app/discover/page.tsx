@@ -7,7 +7,7 @@ import { SongList } from "@/components/Song/SongList";
 import { ChooseInstrument } from "@/components/SlotMachine/ChooseInstrument";
 import { SlotMachine } from "@/components/SlotMachine/SlotMachine";
 import { SongGridSkeleton } from "@/components/ui/Skeleton";
-import { INSTRUMENTS } from "@/types";
+import { INSTRUMENTS, GENRES } from "@/types";
 import type { Song, Instrument } from "@/types";
 
 export default function Discover() {
@@ -20,7 +20,8 @@ export default function Discover() {
   const [search, setSearch] = useState("");
   const [filterInstrument, setFilterInstrument] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("");
-  const [sortBy, setSortBy] = useState<"newest" | "tracks">("newest");
+  const [filterGenre, setFilterGenre] = useState<string>("");
+  const [sortBy, setSortBy] = useState<"newest" | "tracks" | "plays">("newest");
 
   useEffect(() => {
     fetchSongs().then(setSongs).finally(() => setLoading(false));
@@ -40,9 +41,16 @@ export default function Discover() {
     if (filterStatus) {
       result = result.filter((s) => s.status === filterStatus);
     }
+    if (filterGenre) {
+      result = result.filter((s) => s.genre === filterGenre);
+    }
     if (sortBy === "tracks") {
       result = [...result].sort(
         (a, b) => (b.tracks?.length ?? 0) - (a.tracks?.length ?? 0)
+      );
+    } else if (sortBy === "plays") {
+      result = [...result].sort(
+        (a, b) => (b.plays ?? 0) - (a.plays ?? 0)
       );
     }
     return result;
@@ -123,16 +131,27 @@ export default function Discover() {
               <option value="minted">Minted</option>
             </select>
             <select
+              value={filterGenre}
+              onChange={(e) => setFilterGenre(e.target.value)}
+              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm focus:outline-none focus:border-zinc-600"
+            >
+              <option value="">All genres</option>
+              {GENRES.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+            <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as "newest" | "tracks")}
+              onChange={(e) => setSortBy(e.target.value as "newest" | "tracks" | "plays")}
               className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm focus:outline-none focus:border-zinc-600"
             >
               <option value="newest">Newest first</option>
               <option value="tracks">Most tracks</option>
+              <option value="plays">Most played</option>
             </select>
-            {(search || filterInstrument || filterStatus) && (
+            {(search || filterInstrument || filterStatus || filterGenre) && (
               <button
-                onClick={() => { setSearch(""); setFilterInstrument(""); setFilterStatus(""); }}
+                onClick={() => { setSearch(""); setFilterInstrument(""); setFilterStatus(""); setFilterGenre(""); }}
                 className="px-3 py-2 text-xs text-zinc-500 hover:text-white transition"
               >
                 Clear filters
