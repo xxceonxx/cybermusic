@@ -15,8 +15,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cybermusic",
-  description: "Create music with people around the world",
+  title: {
+    default: "Cybermusic — Make Music Together",
+    template: "%s — Cybermusic",
+  },
+  description:
+    "Create songs, collaborate with musicians worldwide, record in the browser, and mint as NFTs on Base.",
+  openGraph: {
+    title: "Cybermusic — Make Music Together",
+    description:
+      "Create songs, collaborate with musicians worldwide, record in the browser, and mint as NFTs on Base.",
+    type: "website",
+    siteName: "Cybermusic",
+  },
+  twitter: {
+    card: "summary",
+    title: "Cybermusic — Make Music Together",
+    description:
+      "Create songs, collaborate with musicians worldwide, record in the browser, and mint as NFTs on Base.",
+  },
 };
 
 export default function RootLayout({
@@ -32,7 +49,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-black text-white">
         <Providers>
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 flex flex-col">{children}</main>
         </Providers>
       </body>
     </html>

@@ -5,17 +5,20 @@ import { useAuth } from "@/hooks/useAuth";
 import { useApi } from "@/hooks/useApi";
 import { NewSongDialog } from "@/components/Song/NewSongDialog";
 import { SongList } from "@/components/Song/SongList";
+import { SongGridSkeleton } from "@/components/ui/Skeleton";
 import type { Song } from "@/types";
 
 export default function Dashboard() {
-  const { isLoggedIn, userId } = useAuth();
+  const { isLoggedIn, userId, isLoading: authLoading } = useAuth();
   const { fetchSongs } = useApi();
   const [songs, setSongs] = useState<Song[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showNewSong, setShowNewSong] = useState(false);
 
   useEffect(() => {
     if (userId) {
-      fetchSongs(userId).then(setSongs);
+      setLoading(true);
+      fetchSongs(userId).then(setSongs).finally(() => setLoading(false));
     }
   }, [userId, fetchSongs]);
 
@@ -23,6 +26,14 @@ export default function Dashboard() {
     setSongs((prev) => [song, ...prev]);
     setShowNewSong(false);
   };
+
+  if (authLoading) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <SongGridSkeleton count={3} />
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
@@ -44,7 +55,11 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <SongList songs={songs} onDelete={(id) => setSongs(songs.filter(s => s.id !== id))} />
+      {loading ? (
+        <SongGridSkeleton count={3} />
+      ) : (
+        <SongList songs={songs} onDelete={(id) => setSongs(songs.filter(s => s.id !== id))} />
+      )}
 
       <NewSongDialog
         open={showNewSong}

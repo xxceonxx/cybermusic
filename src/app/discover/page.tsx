@@ -6,6 +6,7 @@ import { useApi } from "@/hooks/useApi";
 import { SongList } from "@/components/Song/SongList";
 import { ChooseInstrument } from "@/components/SlotMachine/ChooseInstrument";
 import { SlotMachine } from "@/components/SlotMachine/SlotMachine";
+import { SongGridSkeleton } from "@/components/ui/Skeleton";
 import { INSTRUMENTS } from "@/types";
 import type { Song, Instrument } from "@/types";
 
@@ -13,6 +14,7 @@ export default function Discover() {
   const { isLoggedIn } = useAuth();
   const { fetchSongs } = useApi();
   const [songs, setSongs] = useState<Song[]>([]);
+  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"browse" | "slot">("browse");
   const [locked, setLocked] = useState<Instrument[]>([]);
   const [search, setSearch] = useState("");
@@ -21,7 +23,7 @@ export default function Discover() {
   const [sortBy, setSortBy] = useState<"newest" | "tracks">("newest");
 
   useEffect(() => {
-    fetchSongs().then(setSongs);
+    fetchSongs().then(setSongs).finally(() => setLoading(false));
   }, [fetchSongs]);
 
   const filtered = useMemo(() => {
@@ -48,8 +50,11 @@ export default function Discover() {
 
   if (!isLoggedIn) {
     return (
-      <div className="flex items-center justify-center flex-1 text-zinc-500">
-        Please login to discover songs
+      <div className="flex flex-col items-center justify-center flex-1 gap-4">
+        <p className="text-zinc-500">Please login to discover songs</p>
+        <a href="/login" className="px-5 py-2.5 bg-white text-black rounded-lg font-medium hover:bg-zinc-200 transition">
+          Login
+        </a>
       </div>
     );
   }
@@ -135,14 +140,21 @@ export default function Discover() {
             )}
           </div>
 
-          {filtered.length === 0 ? (
+          {loading ? (
+            <SongGridSkeleton count={6} />
+          ) : filtered.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-zinc-500 text-lg mb-2">
                 {songs.length === 0 ? "No songs yet" : "No matching songs"}
               </p>
-              <p className="text-zinc-600 text-sm">
+              <p className="text-zinc-600 text-sm mb-4">
                 {songs.length === 0 ? "Be the first to create one!" : "Try different filters"}
               </p>
+              {songs.length === 0 && (
+                <a href="/main" className="inline-block px-5 py-2.5 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-medium transition">
+                  Create a Song
+                </a>
+              )}
             </div>
           ) : (
             <SongList songs={filtered} />
