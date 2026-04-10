@@ -117,25 +117,15 @@ export function DAW({
 
   // --- Create WaveSurfer when a container mounts (ref callback) ---
   const initWaveSurfer = useCallback(
-    (trackId: number, container: HTMLDivElement | null, track: Track) => {
-      // Cleanup old instance
-      const existing = wavesurferRefs.current.get(trackId);
-      if (!container || !track.ipfsUrl) {
-        if (existing) {
-          existing.destroy();
-          wavesurferRefs.current.delete(trackId);
-          setTrackStates((prev) => {
-            const next = new Map(prev);
-            const ts = next.get(trackId);
-            if (ts) next.set(trackId, { ...ts, wavesurfer: null });
-            return next;
-          });
-        }
-        return;
-      }
+    (trackId: number, container: HTMLDivElement | null, ipfsUrl: string, instrument: string) => {
+      // Ignore null calls (React cleanup on re-render) — don't destroy anything
+      if (!container) return;
 
-      // Already initialized for this URL
+      // Already initialized for this container + URL combo
+      const existing = wavesurferRefs.current.get(trackId);
       if (existing && waveformRefs.current.get(trackId) === container) return;
+
+      // Destroy old instance if container or URL changed
       if (existing) existing.destroy();
 
       waveformRefs.current.set(trackId, container);
@@ -143,8 +133,8 @@ export function DAW({
 
       const ws = WaveSurfer.create({
         container,
-        waveColor: getTrackColor(track.instrument, 0.5),
-        progressColor: getTrackColor(track.instrument, 1),
+        waveColor: getTrackColor(instrument, 0.5),
+        progressColor: getTrackColor(instrument, 1),
         height: TRACK_HEIGHT,
         barWidth: 2,
         barGap: 1,
@@ -152,14 +142,13 @@ export function DAW({
         cursorWidth: 0,
         normalize: true,
         interact: false,
-        url: track.ipfsUrl,
+        url: ipfsUrl,
       });
 
       wavesurferRefs.current.set(trackId, ws);
 
       ws.on("ready", () => {
         setIsReady(true);
-        // Sync to trackStates so playback works
         setTrackStates((prev) => {
           const next = new Map(prev);
           const ts = next.get(trackId);
@@ -683,7 +672,7 @@ export function DAW({
 
                 {track.ipfsUrl ? (
                   <div
-                    ref={(el) => initWaveSurfer(track.id, el, track)}
+                    ref={(el) => initWaveSurfer(track.id, el, track.ipfsUrl!, track.instrument)}
                     className="w-full h-full"
                   />
                 ) : isRecordingThis ? (

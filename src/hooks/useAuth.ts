@@ -13,12 +13,12 @@ export function useAuth() {
   const { data: session, status: sessionStatus } = useSession();
   const { address, isConnected } = useAccount();
   const [walletUserId, setWalletUserId] = useState<string | null>(null);
-  const registeredRef = useRef<string | null>(null);
+  const fetchingRef = useRef(false);
 
   // Auto-register wallet user in DB when wallet connects without Auth.js session
   useEffect(() => {
-    if (isConnected && address && !session?.user?.id && registeredRef.current !== address) {
-      registeredRef.current = address;
+    if (isConnected && address && !session?.user?.id && !walletUserId && !fetchingRef.current) {
+      fetchingRef.current = true;
       fetch("/api/auth/wallet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -26,14 +26,14 @@ export function useAuth() {
       })
         .then((res) => res.json())
         .then((data) => setWalletUserId(data.id))
-        .catch(() => { registeredRef.current = null; });
+        .catch(() => {})
+        .finally(() => { fetchingRef.current = false; });
     }
     if (!isConnected) {
       setWalletUserId(null);
-      registeredRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, address, session?.user?.id]);
+  }, [isConnected, address]);
 
   const isLoggedIn = !!session || isConnected;
   const isLoading = sessionStatus === "loading";
