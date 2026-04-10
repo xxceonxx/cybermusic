@@ -23,6 +23,35 @@ export function getDb(): Database.Database {
       );
       db.exec(migration);
     }
+    if (!tables.find((t) => t.name === "comments")) {
+      const migration = fs.readFileSync(
+        path.join(process.cwd(), "db", "migrations", "002_comments.sql"),
+        "utf-8"
+      );
+      db.exec(migration);
+    }
+    if (!tables.find((t) => t.name === "notifications")) {
+      const migration = fs.readFileSync(
+        path.join(process.cwd(), "db", "migrations", "003_notifications.sql"),
+        "utf-8"
+      );
+      db.exec(migration);
+    }
   }
   return db;
+}
+
+/** Convert a snake_case DB row to camelCase for the frontend */
+export function toCamel(row: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+    out[camel] = value;
+  }
+  return out;
+}
+
+/** Convert an array of snake_case DB rows to camelCase */
+export function toCamelAll(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  return rows.map((r) => toCamel(r));
 }

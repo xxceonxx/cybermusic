@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserId } from "@/lib/api-auth";
-import { getDb } from "@/lib/db";
+import { getDb, toCamel, toCamelAll } from "@/lib/db";
 
 // GET /api/tracks?status=open&instrument=Bass,Drums
 export async function GET(req: NextRequest) {
@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
   }
 
   query += " ORDER BY created_at DESC";
-  const tracks = db.prepare(query).all(...params);
-  return NextResponse.json(tracks);
+  const tracks = db.prepare(query).all(...params) as Record<string, unknown>[];
+  return NextResponse.json(toCamelAll(tracks));
 }
 
 // POST /api/tracks
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
   const track = db
     .prepare("SELECT * FROM tracks WHERE id = ?")
-    .get(result.lastInsertRowid);
+    .get(result.lastInsertRowid) as Record<string, unknown>;
 
-  return NextResponse.json(track, { status: 201 });
+  return NextResponse.json(toCamel(track), { status: 201 });
 }

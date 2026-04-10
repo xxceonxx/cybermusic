@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useApi } from "@/hooks/useApi";
 import { SongList } from "@/components/Song/SongList";
 import { ChooseInstrument } from "@/components/SlotMachine/ChooseInstrument";
 import { SlotMachine } from "@/components/SlotMachine/SlotMachine";
+import { INSTRUMENTS } from "@/types";
 import type { Song, Instrument } from "@/types";
 
 export default function Discover() {
@@ -14,10 +15,36 @@ export default function Discover() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [tab, setTab] = useState<"browse" | "slot">("browse");
   const [locked, setLocked] = useState<Instrument[]>([]);
+  const [search, setSearch] = useState("");
+  const [filterInstrument, setFilterInstrument] = useState<string>("");
+  const [filterStatus, setFilterStatus] = useState<string>("");
+  const [sortBy, setSortBy] = useState<"newest" | "tracks">("newest");
 
   useEffect(() => {
     fetchSongs().then(setSongs);
   }, [fetchSongs]);
+
+  const filtered = useMemo(() => {
+    let result = songs;
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((s) => s.name.toLowerCase().includes(q));
+    }
+    if (filterInstrument) {
+      result = result.filter((s) =>
+        s.tracks?.some((t) => t.instrument === filterInstrument)
+      );
+    }
+    if (filterStatus) {
+      result = result.filter((s) => s.status === filterStatus);
+    }
+    if (sortBy === "tracks") {
+      result = [...result].sort(
+        (a, b) => (b.tracks?.length ?? 0) - (a.tracks?.length ?? 0)
+      );
+    }
+    return result;
+  }, [songs, search, filterInstrument, filterStatus, sortBy]);
 
   if (!isLoggedIn) {
     return (
@@ -61,17 +88,64 @@ export default function Discover() {
       {/* Browse Tab */}
       {tab === "browse" && (
         <div>
-          {songs.length === 0 ? (
+          {/* Filters */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            <input
+              type="text"
+              placeholder="Search songs..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm focus:outline-none focus:border-zinc-600 w-48"
+            />
+            <select
+              value={filterInstrument}
+              onChange={(e) => setFilterInstrument(e.target.value)}
+              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm focus:outline-none focus:border-zinc-600"
+            >
+              <option value="">All instruments</option>
+              {INSTRUMENTS.map((inst) => (
+                <option key={inst} value={inst}>{inst}</option>
+              ))}
+            </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm focus:outline-none focus:border-zinc-600"
+            >
+              <option value="">All status</option>
+              <option value="open">Open</option>
+              <option value="uploaded">Uploaded</option>
+              <option value="minted">Minted</option>
+            </select>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as "newest" | "tracks")}
+              className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm focus:outline-none focus:border-zinc-600"
+            >
+              <option value="newest">Newest first</option>
+              <option value="tracks">Most tracks</option>
+            </select>
+            {(search || filterInstrument || filterStatus) && (
+              <button
+                onClick={() => { setSearch(""); setFilterInstrument(""); setFilterStatus(""); }}
+                className="px-3 py-2 text-xs text-zinc-500 hover:text-white transition"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+
+          {filtered.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-zinc-500 text-lg mb-2">
-                No songs yet
+                {songs.length === 0 ? "No songs yet" : "No matching songs"}
               </p>
               <p className="text-zinc-600 text-sm">
-                Be the first to create one!
+                {songs.length === 0 ? "Be the first to create one!" : "Try different filters"}
               </p>
             </div>
           ) : (
-            <SongList songs={songs} />
+            <SongList songs={filtered} />
           )}
         </div>
       )}

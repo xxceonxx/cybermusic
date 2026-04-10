@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserId } from "@/lib/api-auth";
-import { getDb } from "@/lib/db";
+import { getDb, toCamel } from "@/lib/db";
+import { createNotification } from "@/lib/notifications";
 
 // PUT /api/tracks/[id]/upload — Set IPFS URL after upload
 export async function PUT(
@@ -39,6 +40,13 @@ export async function PUT(
     "UPDATE tracks SET ipfs_url = ?, status = 'uploaded' WHERE id = ?"
   ).run(ipfsUrl, id);
 
-  const updated = db.prepare("SELECT * FROM tracks WHERE id = ?").get(id);
-  return NextResponse.json(updated);
+  // Notify song creator about new audio
+  const trackFull = db.prepare("SELECT song_id, instrument FROM tracks WHERE id = ?").get(id) as { song_id: number; instrument: string };
+  const song = db.prepare("SELECT creator_id, name FROM songs WHERE id = ?").get(trackFull.song_id) as { creator_id: string; name: string };
+  if (song.creator_id !== userId) {
+    createNotification(song.creator_id, "track_uploaded", `New audio uploaded for ${trackFull.instrument} on "${song.name}"`, trackFull.song_id);
+  }
+
+  const updated = db.prepare("SELECT * FROM tracks WHERE id = ?").get(id) as Record<string, unknown>;
+  return NextResponse.json(toCamel(updated));
 }

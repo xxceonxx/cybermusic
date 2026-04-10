@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserId } from "@/lib/api-auth";
-import { getDb } from "@/lib/db";
+import { getDb, toCamel, toCamelAll } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 
 const COVER_IMAGES = [
@@ -23,14 +23,14 @@ export async function GET(req: NextRequest) {
     : "SELECT * FROM songs ORDER BY created_at DESC";
   const params = creatorId ? [creatorId] : [];
 
-  const songs = db.prepare(query).all(...params) as { id: number }[];
+  const songs = db.prepare(query).all(...params) as Record<string, unknown>[];
 
   // Attach track counts for each song
   const songsWithTracks = songs.map((song) => {
     const tracks = db
-      .prepare("SELECT id, instrument, status FROM tracks WHERE song_id = ?")
-      .all(song.id);
-    return { ...song, tracks };
+      .prepare("SELECT id, instrument, status, ipfs_url FROM tracks WHERE song_id = ?")
+      .all(song.id as number) as Record<string, unknown>[];
+    return { ...toCamel(song), tracks: toCamelAll(tracks) };
   });
 
   return NextResponse.json(songsWithTracks);
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
   const song = db
     .prepare("SELECT * FROM songs WHERE id = ?")
-    .get(result.lastInsertRowid);
+    .get(result.lastInsertRowid) as Record<string, unknown>;
 
-  return NextResponse.json(song, { status: 201 });
+  return NextResponse.json(toCamel(song), { status: 201 });
 }

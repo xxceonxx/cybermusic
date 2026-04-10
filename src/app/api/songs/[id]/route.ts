@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserId } from "@/lib/api-auth";
-import { getDb } from "@/lib/db";
+import { getDb, toCamel, toCamelAll } from "@/lib/db";
 
 // GET /api/songs/[id] — Song with tracks
 export async function GET(
@@ -10,16 +10,22 @@ export async function GET(
   const { id } = await params;
   const db = getDb();
 
-  const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(id);
+  const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as Record<string, unknown> | undefined;
   if (!song) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   const tracks = db
-    .prepare("SELECT * FROM tracks WHERE song_id = ? ORDER BY created_at ASC")
-    .all(id);
+    .prepare(`
+      SELECT t.*, u.name as editor_name, u.address as editor_address
+      FROM tracks t
+      LEFT JOIN users u ON t.editor_id = u.id
+      WHERE t.song_id = ?
+      ORDER BY t.created_at ASC
+    `)
+    .all(id) as Record<string, unknown>[];
 
-  return NextResponse.json({ ...song, tracks });
+  return NextResponse.json({ ...toCamel(song), tracks: toCamelAll(tracks) });
 }
 
 // DELETE /api/songs/[id]
@@ -78,7 +84,7 @@ export async function PATCH(
   }
 
   const body = await req.json();
-  const allowed = ["status", "ipfs_url", "meta_url", "name"];
+  const allowed = ["status", "ipfs_url", "meta_url", "name", "image"];
   const updates: string[] = [];
   const values: unknown[] = [];
 
@@ -98,6 +104,6 @@ export async function PATCH(
     ...values
   );
 
-  const updated = db.prepare("SELECT * FROM songs WHERE id = ?").get(id);
-  return NextResponse.json(updated);
+  const updated = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as Record<string, unknown>;
+  return NextResponse.json(toCamel(updated));
 }

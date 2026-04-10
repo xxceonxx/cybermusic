@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useAuth } from "./useAuth";
 
 interface UploadResult {
   cid: string;
@@ -9,6 +10,7 @@ interface UploadResult {
 
 export function useIpfs() {
   const [uploading, setUploading] = useState(false);
+  const { userId } = useAuth();
 
   const uploadFile = useCallback(async (file: File | Blob): Promise<UploadResult> => {
     setUploading(true);
@@ -18,15 +20,19 @@ export function useIpfs() {
 
       const res = await fetch("/api/ipfs", {
         method: "POST",
+        headers: userId ? { "x-user-id": userId } : {},
         body: formData,
       });
 
-      if (!res.ok) throw new Error("IPFS upload failed");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `IPFS upload failed (${res.status})`);
+      }
       return res.json();
     } finally {
       setUploading(false);
     }
-  }, []);
+  }, [userId]);
 
   const uploadJson = useCallback(async (data: unknown): Promise<UploadResult> => {
     const blob = new Blob([JSON.stringify(data)], { type: "application/json" });

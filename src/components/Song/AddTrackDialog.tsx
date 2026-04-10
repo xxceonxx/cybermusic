@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
 import { useApi } from "@/hooks/useApi";
+import { useToast } from "@/components/ui/Toast";
 import { INSTRUMENTS } from "@/types";
 import type { Track } from "@/types";
 
@@ -20,12 +21,18 @@ export function AddTrackDialog({
   onAdded,
 }: AddTrackDialogProps) {
   const { createTrack, loading } = useApi();
+  const { toast } = useToast();
   const [instrument, setInstrument] = useState(INSTRUMENTS[0]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const track = await createTrack({ songId, instrument });
-    onAdded(track);
+    try {
+      const track = await createTrack({ songId, instrument });
+      onAdded(track);
+      toast(`${instrument} track added`, "success");
+    } catch {
+      toast("Failed to add track", "error");
+    }
   };
 
   return (

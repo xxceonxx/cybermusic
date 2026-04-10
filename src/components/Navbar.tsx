@@ -4,9 +4,10 @@ import Link from "next/link";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { signOut } from "next-auth/react";
 import { useAuth } from "@/hooks/useAuth";
+import { NotificationBell } from "./NotificationBell";
 
 export function Navbar() {
-  const { isLoggedIn, userName, session } = useAuth();
+  const { isLoggedIn, userName, userId, session } = useAuth();
 
   return (
     <nav className="border-b border-zinc-800 bg-black/80 backdrop-blur-sm sticky top-0 z-50">
@@ -28,15 +29,19 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
+          <NotificationBell />
           <ConnectButton
             showBalance={false}
             chainStatus="icon"
             accountStatus={isLoggedIn ? "avatar" : "full"}
           />
-          {isLoggedIn && userName && (
-            <span className="text-sm text-zinc-400 hidden sm:block">
+          {isLoggedIn && userName && userId && (
+            <Link
+              href={`/profile/${userId}`}
+              className="text-sm text-zinc-400 hover:text-white transition hidden sm:block"
+            >
               {userName}
-            </span>
+            </Link>
           )}
           {session && (
             <button

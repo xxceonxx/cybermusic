@@ -48,6 +48,8 @@ export interface Track {
   instrument: Instrument;
   creatorId: string;
   editorId?: string | null;
+  editorName?: string | null;
+  editorAddress?: string | null;
   status: TrackStatus;
   ipfsUrl?: string | null;
   createdAt: number;

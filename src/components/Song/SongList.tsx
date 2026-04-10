@@ -1,10 +1,12 @@
 "use client";
 
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useApi } from "@/hooks/useApi";
+import { useToast } from "@/components/ui/Toast";
 import type { Song, Track } from "@/types";
 
-type SongWithTracks = Song & { tracks?: Pick<Track, "id" | "instrument" | "status">[] };
+type SongWithTracks = Song & { tracks?: Pick<Track, "id" | "instrument" | "status" | "ipfsUrl">[] };
 
 interface SongListProps {
   songs: SongWithTracks[];
@@ -13,11 +15,45 @@ interface SongListProps {
 
 export function SongList({ songs, onDelete }: SongListProps) {
   const { deleteSong } = useApi();
+  const { toast } = useToast();
+  const [playingSongId, setPlayingSongId] = useState<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const togglePreview = (e: React.MouseEvent, song: SongWithTracks) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Find first uploaded track
+    const previewUrl =
+      song.ipfsUrl ??
+      song.tracks?.find((t) => t.ipfsUrl)?.ipfsUrl;
+    if (!previewUrl) return;
+
+    if (playingSongId === song.id) {
+      audioRef.current?.pause();
+      audioRef.current = null;
+      setPlayingSongId(null);
+      return;
+    }
+
+    audioRef.current?.pause();
+    const audio = new Audio(previewUrl);
+    audio.volume = 0.7;
+    audio.play();
+    audio.onended = () => setPlayingSongId(null);
+    audioRef.current = audio;
+    setPlayingSongId(song.id);
+  };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this song?")) return;
-    await deleteSong(id);
-    onDelete?.(id);
+    try {
+      await deleteSong(id);
+      onDelete?.(id);
+      toast("Song deleted", "info");
+    } catch {
+      toast("Failed to delete song", "error");
+    }
   };
 
   if (songs.length === 0) {
@@ -46,6 +82,24 @@ export function SongList({ songs, onDelete }: SongListProps) {
                   alt={song.name}
                   className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition"
                 />
+                {/* Play preview button */}
+                {(song.ipfsUrl || song.tracks?.some((t) => t.ipfsUrl)) && (
+                  <button
+                    onClick={(e) => togglePreview(e, song)}
+                    className="absolute bottom-2 left-2 w-9 h-9 flex items-center justify-center rounded-full bg-black/70 hover:bg-emerald-600 text-white transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm"
+                  >
+                    {playingSongId === song.id ? (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                        <rect x="2" y="1" width="3.5" height="12" rx="1" />
+                        <rect x="8.5" y="1" width="3.5" height="12" rx="1" />
+                      </svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                        <path d="M3 1.5v11l9-5.5z" />
+                      </svg>
+                    )}
+                  </button>
+                )}
                 {openTracks.length > 0 && (
                   <div className="absolute top-2 right-2 px-2 py-1 bg-green-600 rounded-full text-xs font-medium">
                     {openTracks.length} open slot{openTracks.length > 1 ? "s" : ""}
