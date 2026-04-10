@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const song = toCamel(row) as { name: string; image: string; bpm: number; duration: number; status: string };
   const trackCount = db.prepare("SELECT COUNT(*) as count FROM tracks WHERE song_id = ?").get(id) as { count: number };
 
-  const title = `${song.name} — Cybermusic`;
+  const title = song.name;
   const description = `${song.bpm} BPM · ${song.duration}s · ${trackCount.count} tracks · ${song.status}`;
 
   return {
