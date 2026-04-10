@@ -50,6 +50,36 @@ export default function RootLayout({
         <Providers>
           <Navbar />
           <main className="flex-1 flex flex-col">{children}</main>
+          <footer className="border-t border-zinc-800/60 py-6 px-4">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-600">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-zinc-500">Cybermusic</span>
+                <span>&middot;</span>
+                <span>Built on Base</span>
+                <span>&middot;</span>
+                <span>Stored on IPFS</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <a
+                  href="https://github.com/xxceonxx/cybermusic"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white transition"
+                >
+                  GitHub
+                </a>
+                <a
+                  href="https://ethglobal.com/showcase"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white transition"
+                >
+                  ETHGlobal
+                </a>
+                <span>&copy; {new Date().getFullYear()}</span>
+              </div>
+            </div>
+          </footer>
         </Providers>
       </body>
     </html>

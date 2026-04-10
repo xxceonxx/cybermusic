@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { signOut } from "next-auth/react";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,6 +9,7 @@ import { NotificationBell } from "./NotificationBell";
 
 export function Navbar() {
   const { isLoggedIn, userName, userId, session } = useAuth();
+  const pathname = usePathname();
 
   return (
     <nav className="border-b border-zinc-800 bg-black/80 backdrop-blur-sm sticky top-0 z-50">
@@ -17,11 +19,25 @@ export function Navbar() {
             Cybermusic
           </Link>
           {isLoggedIn && (
-            <div className="hidden sm:flex items-center gap-4 text-sm text-zinc-400">
-              <Link href="/main" className="hover:text-white transition">
+            <div className="hidden sm:flex items-center gap-4 text-sm">
+              <Link
+                href="/main"
+                className={`transition ${
+                  pathname === "/main"
+                    ? "text-white font-medium"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
                 Dashboard
               </Link>
-              <Link href="/discover" className="hover:text-white transition">
+              <Link
+                href="/discover"
+                className={`transition ${
+                  pathname === "/discover"
+                    ? "text-white font-medium"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
                 Discover
               </Link>
             </div>

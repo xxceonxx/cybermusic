@@ -28,10 +28,13 @@ export default function SongDetail() {
   const params = useParams();
   const router = useRouter();
   const { userId } = useAuth();
-  const { fetchSong } = useApi();
+  const { fetchSong, updateSong } = useApi();
   const { toast } = useToast();
   const [song, setSong] = useState<SongWithTracks | null>(null);
   const [showAddTrack, setShowAddTrack] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editBpm, setEditBpm] = useState(120);
 
   const songId = Number(params.id);
   const isOwner = userId === song?.creatorId;
@@ -99,21 +102,72 @@ export default function SongDetail() {
             </div>
           )}
           <div>
-            <h1 className="text-2xl font-bold">{song.name}</h1>
-            <p className="text-zinc-400 text-sm mt-0.5">
-              {song.bpm} BPM &middot; {song.duration}s &middot;{" "}
-              <span
-                className={
-                  song.status === "minted"
-                    ? "text-green-400"
-                    : song.status === "open"
-                    ? "text-yellow-400"
-                    : "text-blue-400"
-                }
+            {editing ? (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  try {
+                    await updateSong(songId, { name: editName, bpm: editBpm } as Partial<Song>);
+                    setSong((prev) => prev ? { ...prev, name: editName, bpm: editBpm } : prev);
+                    setEditing(false);
+                    toast("Song updated", "success");
+                  } catch {
+                    toast("Failed to update song", "error");
+                  }
+                }}
+                className="flex items-center gap-2"
               >
-                {song.status}
-              </span>
-            </p>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="text-xl font-bold bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 focus:outline-none focus:border-zinc-500 w-48"
+                  autoFocus
+                />
+                <input
+                  type="number"
+                  value={editBpm}
+                  onChange={(e) => setEditBpm(Number(e.target.value))}
+                  min={60}
+                  max={300}
+                  className="w-16 text-sm bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 focus:outline-none focus:border-zinc-500"
+                />
+                <span className="text-xs text-zinc-500">BPM</span>
+                <button type="submit" className="px-2 py-1 bg-emerald-600 rounded text-xs font-medium">Save</button>
+                <button type="button" onClick={() => setEditing(false)} className="px-2 py-1 text-xs text-zinc-500 hover:text-white">Cancel</button>
+              </form>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold">{song.name}</h1>
+                  {isOwner && song.status === "open" && (
+                    <button
+                      onClick={() => { setEditName(song.name); setEditBpm(song.bpm); setEditing(true); }}
+                      className="text-zinc-600 hover:text-zinc-400 transition"
+                      title="Edit song"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M11.5 1.5l3 3L5 14H2v-3L11.5 1.5z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                <p className="text-zinc-400 text-sm mt-0.5">
+                  {song.bpm} BPM &middot; {song.duration}s &middot;{" "}
+                  <span
+                    className={
+                      song.status === "minted"
+                        ? "text-green-400"
+                        : song.status === "open"
+                        ? "text-yellow-400"
+                        : "text-blue-400"
+                    }
+                  >
+                    {song.status}
+                  </span>
+                </p>
+              </>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -129,6 +183,29 @@ export default function SongDetail() {
               <path d="M6 10l4-4M6.5 4.5L8 3a3 3 0 1 1 4.24 4.24L10.5 9M9.5 11.5L8 13a3 3 0 1 1-4.24-4.24L5.5 7" />
             </svg>
             Share
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const res = await fetch(`/api/songs/${songId}/fork`, {
+                  method: "POST",
+                  headers: userId ? { "x-user-id": userId } : {},
+                });
+                if (!res.ok) throw new Error();
+                const forked = await res.json();
+                toast("Remix created!", "success");
+                router.push(`/song/${forked.id}`);
+              } catch {
+                toast("Failed to create remix", "error");
+              }
+            }}
+            className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm transition"
+            title="Create a remix of this song"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="inline -mt-0.5 mr-1">
+              <path d="M5 3v4m0 0L3 5m2 2l2-2M11 13V9m0 0l2 2m-2-2l-2 2M3 9h4a2 2 0 0 0 2-2V3M13 7h-4a2 2 0 0 0-2 2v4" />
+            </svg>
+            Remix
           </button>
           {isOwner && song.status === "open" && (
             <button

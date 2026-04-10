@@ -45,6 +45,7 @@ export function DAW({
   const [currentTime, setCurrentTime] = useState(0);
   const [isReady, setIsReady] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [dragOverTrackId, setDragOverTrackId] = useState<number | null>(null);
   const [uploadingTrackId, setUploadingTrackId] = useState<number | null>(null);
 
   const waveformRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -248,6 +249,56 @@ export function DAW({
     [trackStates, duration]
   );
 
+  // --- Keyboard shortcuts ---
+  const uploadedCount = tracks.filter((t) => t.ipfsUrl).length;
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      )
+        return;
+
+      switch (e.code) {
+        case "Space":
+          e.preventDefault();
+          if (uploadedCount === 0) return;
+          if (playing) {
+            trackStates.forEach((ts) => ts.wavesurfer?.pause());
+            setPlaying(false);
+          } else {
+            const hasSolo = Array.from(trackStates.values()).some((ts) => ts.solo);
+            trackStates.forEach((ts) => {
+              if (!ts.wavesurfer) return;
+              const shouldPlay = hasSolo ? ts.solo : !ts.muted;
+              ts.wavesurfer.setVolume(shouldPlay ? ts.volume : 0);
+              ts.wavesurfer.play();
+            });
+            setPlaying(true);
+          }
+          break;
+        case "Home":
+          e.preventDefault();
+          trackStates.forEach((ts) => ts.wavesurfer?.stop());
+          setPlaying(false);
+          setCurrentTime(0);
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          seekAll(Math.max(0, (currentTime - 5) / duration));
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          seekAll(Math.min(1, (currentTime + 5) / duration));
+          break;
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [playing, trackStates, currentTime, duration, seekAll, uploadedCount]);
+
   // --- Drag-to-seek (playhead + waveform area) ---
   const getProgressFromEvent = useCallback(
     (e: MouseEvent | React.MouseEvent) => {
@@ -394,7 +445,6 @@ export function DAW({
     return `${m}:${s.toString().padStart(2, "0")}.${ms}`;
   };
 
-  const uploadedCount = tracks.filter((t) => t.ipfsUrl).length;
   const playheadPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
@@ -592,9 +642,34 @@ export function DAW({
                     </div>
                   </div>
                 ) : (
-                  <div className="absolute inset-2 flex items-center justify-center border border-dashed border-zinc-800/60 rounded-lg bg-zinc-900/20">
+                  <div
+                    className={`absolute inset-2 flex items-center justify-center border border-dashed rounded-lg transition-colors ${
+                      dragOverTrackId === track.id
+                        ? "border-emerald-500/60 bg-emerald-500/10"
+                        : "border-zinc-800/60 bg-zinc-900/20"
+                    }`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDragOverTrackId(track.id);
+                    }}
+                    onDragLeave={() => setDragOverTrackId(null)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDragOverTrackId(null);
+                      const file = e.dataTransfer.files[0];
+                      if (file && file.type.startsWith("audio/")) {
+                        handleUpload(track.id, file);
+                      }
+                    }}
+                  >
                     <span className="text-[11px] text-zinc-700">
-                      {track.status === "editing" ? "Recording..." : "No audio — upload a file"}
+                      {dragOverTrackId === track.id
+                        ? "Drop audio file here"
+                        : track.status === "editing"
+                        ? "Recording..."
+                        : "Drop audio file or click upload"}
                     </span>
                   </div>
                 )}
