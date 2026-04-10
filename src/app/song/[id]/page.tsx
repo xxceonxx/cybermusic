@@ -207,7 +207,7 @@ export default function SongDetail() {
             </svg>
             Remix
           </button>
-          {isOwner && song.status === "open" && (
+          {isOwner && song.status !== "minted" && (
             <button
               onClick={() => setShowAddTrack(true)}
               className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-medium transition"
