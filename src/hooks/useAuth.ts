@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useAccount } from "wagmi";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 /**
  * Unified auth hook — user is "logged in" if they have
@@ -13,10 +13,12 @@ export function useAuth() {
   const { data: session, status: sessionStatus } = useSession();
   const { address, isConnected } = useAccount();
   const [walletUserId, setWalletUserId] = useState<string | null>(null);
+  const registeredRef = useRef<string | null>(null);
 
   // Auto-register wallet user in DB when wallet connects without Auth.js session
   useEffect(() => {
-    if (isConnected && address && !session) {
+    if (isConnected && address && !session?.user?.id && registeredRef.current !== address) {
+      registeredRef.current = address;
       fetch("/api/auth/wallet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -24,12 +26,14 @@ export function useAuth() {
       })
         .then((res) => res.json())
         .then((data) => setWalletUserId(data.id))
-        .catch(() => {});
+        .catch(() => { registeredRef.current = null; });
     }
     if (!isConnected) {
       setWalletUserId(null);
+      registeredRef.current = null;
     }
-  }, [isConnected, address, session]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, address, session?.user?.id]);
 
   const isLoggedIn = !!session || isConnected;
   const isLoading = sessionStatus === "loading";

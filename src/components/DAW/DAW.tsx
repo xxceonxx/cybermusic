@@ -172,14 +172,19 @@ export function DAW({
   );
 
   // --- Track ordering ---
+  const trackIds = tracks.map((t) => t.id).join(",");
   useEffect(() => {
     setTrackOrder((prev) => {
-      const currentIds = new Set(tracks.map((t) => t.id));
+      const ids = trackIds.split(",").filter(Boolean).map(Number);
+      const currentIds = new Set(ids);
       const kept = prev.filter((id) => currentIds.has(id));
-      const newIds = tracks.map((t) => t.id).filter((id) => !kept.includes(id));
-      return [...kept, ...newIds];
+      const newIds = ids.filter((id) => !kept.includes(id));
+      const next = [...kept, ...newIds];
+      // Only update if actually changed
+      if (next.length === prev.length && next.every((id, i) => id === prev[i])) return prev;
+      return next;
     });
-  }, [tracks]);
+  }, [trackIds]);
 
   const orderedTracks = trackOrder.length > 0
     ? trackOrder.map((id) => tracks.find((t) => t.id === id)).filter(Boolean) as Track[]
@@ -202,6 +207,8 @@ export function DAW({
   }, [dragSourceId, dragOverId]);
 
   // --- Sync track data into trackStates (without touching WaveSurfer) ---
+  // Use a stable key so this only re-runs when tracks actually change
+  const tracksKey = tracks.map((t) => `${t.id}:${t.ipfsUrl ?? ""}:${t.status}`).join("|");
   useEffect(() => {
     setTrackStates((prev) => {
       const next = new Map<number, TrackState>();
@@ -219,7 +226,8 @@ export function DAW({
       return next;
     });
     if (tracks.filter((t) => t.ipfsUrl).length === 0) setIsReady(true);
-  }, [tracks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tracksKey]);
 
   // --- Cleanup on unmount ---
   useEffect(() => {

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "./providers";
 import { Navbar } from "@/components/Navbar";
@@ -14,13 +14,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#000000",
+};
+
 export const metadata: Metadata = {
   title: {
     default: "Cybermusic — Make Music Together",
     template: "%s — Cybermusic",
   },
   manifest: "/manifest.json",
-  themeColor: "#000000",
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
   description:
     "Create songs, collaborate with musicians worldwide, record in the browser, and mint as NFTs on Base.",
