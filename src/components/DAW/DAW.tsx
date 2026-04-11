@@ -30,7 +30,7 @@ interface DAWProps {
   onTrackDeleted: (trackId: number) => void;
 }
 
-const TRACK_HEIGHT = 80;
+const TRACK_HEIGHT = 88;
 
 export function DAW({
   tracks,
@@ -489,98 +489,89 @@ export function DAW({
   const playheadPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="bg-zinc-950 rounded-xl overflow-hidden border border-zinc-800/60 shadow-2xl select-none">
-      {/* Transport Bar */}
-      <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-b from-zinc-900 to-zinc-900/95 border-b border-zinc-800/60 flex-wrap">
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={stopAll}
-            className="w-8 h-8 flex items-center justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition text-xs"
-            title="Stop"
-          >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-              <rect x="1" y="1" width="10" height="10" rx="1" />
-            </svg>
+    <div className="bg-[#0c0c0e] rounded-xl overflow-hidden border border-zinc-800/50 shadow-2xl select-none">
+      {/* ═══ Transport Bar ═══ */}
+      <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-[#111113] border-b border-zinc-800/50">
+        {/* Transport buttons */}
+        <div className="flex items-center gap-1">
+          <button onClick={stopAll} className="w-7 h-7 flex items-center justify-center rounded bg-zinc-800/80 hover:bg-zinc-700 text-zinc-500 hover:text-white transition" title="Stop [Home]">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect width="10" height="10" rx="1"/></svg>
           </button>
           <button
             onClick={playing ? pauseAll : playAll}
             disabled={uploadedCount === 0}
-            className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm font-bold transition-all ${
+            className={`w-9 h-9 flex items-center justify-center rounded-md transition-all ${
               playing
-                ? "bg-amber-500 text-black hover:bg-amber-400 shadow-lg shadow-amber-500/20"
+                ? "bg-amber-500 text-black hover:bg-amber-400 shadow-md shadow-amber-500/25"
                 : uploadedCount === 0
-                ? "bg-zinc-800 text-zinc-600 cursor-not-allowed"
-                : "bg-emerald-500 text-black hover:bg-emerald-400 shadow-lg shadow-emerald-500/20"
+                ? "bg-zinc-800/80 text-zinc-600 cursor-not-allowed"
+                : "bg-emerald-500 text-black hover:bg-emerald-400 shadow-md shadow-emerald-500/25"
             }`}
-            title={playing ? "Pause" : "Play"}
+            title={`${playing ? "Pause" : "Play"} [Space]`}
           >
             {playing ? (
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                <rect x="2" y="1" width="3.5" height="12" rx="1" />
-                <rect x="8.5" y="1" width="3.5" height="12" rx="1" />
-              </svg>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="1" y="0" width="3" height="12" rx="1"/><rect x="8" y="0" width="3" height="12" rx="1"/></svg>
             ) : (
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                <path d="M3 1.5v11l9-5.5z" />
-              </svg>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 0.5v11l9-5.5z"/></svg>
             )}
           </button>
-          <button
-            onClick={() => toggleMetronome(bpm)}
-            className={`w-8 h-8 flex items-center justify-center rounded-md transition text-xs font-bold ${
-              metronomeActive
-                ? "bg-orange-500/20 text-orange-400 border border-orange-500/40"
-                : "bg-zinc-800 hover:bg-zinc-700 text-zinc-500 hover:text-zinc-300"
-            }`}
-            title={`Metronome ${bpm} BPM`}
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 1L3 14h10L8 1zm0 4l2.5 7h-5L8 5z" />
-            </svg>
+          <button onClick={() => toggleMetronome(bpm)}
+            className={`w-7 h-7 flex items-center justify-center rounded transition ${metronomeActive ? "bg-orange-500/20 text-orange-400 ring-1 ring-orange-500/40" : "bg-zinc-800/80 text-zinc-600 hover:text-zinc-300"}`}
+            title={`Click ${bpm} BPM`}>
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1L3 14h10L8 1zm0 4l2.5 7h-5L8 5z"/></svg>
           </button>
         </div>
 
-        <div className="w-px h-8 bg-zinc-800" />
+        <div className="w-px h-7 bg-zinc-800/60" />
 
-        <div className="font-mono text-sm tabular-nums bg-zinc-950 px-3 py-1.5 rounded-md border border-zinc-800/60 min-w-[140px] text-center">
-          <span className="text-emerald-400 font-semibold">
-            {formatTime(currentTime)}
-          </span>
-          <span className="text-zinc-600 mx-1">/</span>
-          <span className="text-zinc-500">{formatTime(duration)}</span>
+        {/* Time + BPM display */}
+        <div className="flex items-center gap-2">
+          <div className="font-mono text-sm tabular-nums bg-black/40 px-2.5 py-1 rounded border border-zinc-800/50 min-w-[130px] text-center">
+            <span className="text-emerald-400 font-semibold">{formatTime(currentTime)}</span>
+            <span className="text-zinc-700 mx-0.5">/</span>
+            <span className="text-zinc-500">{formatTime(duration)}</span>
+          </div>
+          <div className="font-mono text-xs bg-black/40 px-2 py-1 rounded border border-zinc-800/50 text-orange-400/80 hidden sm:block">
+            {bpm} <span className="text-zinc-600 text-[9px]">BPM</span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 ml-auto text-xs text-zinc-500">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500/60" />
-            {uploadedCount}/{tracks.length} tracks
+        {/* Status */}
+        <div className="flex items-center gap-3 ml-auto text-[11px] text-zinc-500">
+          <span className="hidden sm:flex items-center gap-1">
+            <span className={`w-1.5 h-1.5 rounded-full ${uploadedCount > 0 ? "bg-emerald-500" : "bg-zinc-600"}`}/>
+            {uploadedCount}/{tracks.length}
           </span>
           {uploading && (
-            <span className="flex items-center gap-1.5 text-blue-400">
-              <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
-              </svg>
-              <span className="animate-pulse">Uploading to IPFS...</span>
+            <span className="flex items-center gap-1 text-blue-400">
+              <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/></svg>
+              <span className="animate-pulse text-[10px]">IPFS</span>
+            </span>
+          )}
+          {recording && (
+            <span className="flex items-center gap-1 text-red-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"/>
+              <span className="text-[10px] font-mono">REC</span>
             </span>
           )}
         </div>
       </div>
 
-      {/* Timeline + Tracks */}
+      {/* ═══ Timeline + Tracks ═══ */}
       <div className="flex">
-        {/* Track Labels Column — hidden on mobile, shown on sm+ */}
-        <div className="hidden sm:block w-52 flex-shrink-0 bg-zinc-900/50">
-          <div className="h-7 border-b border-zinc-800/40 bg-zinc-900/80 flex items-center px-3">
-            <span className="text-[9px] uppercase tracking-wider text-zinc-600 font-medium">
-              Tracks
-            </span>
+        {/* Track Controls Column */}
+        <div className="hidden sm:block w-56 flex-shrink-0 bg-[#0e0e10]">
+          <div className="h-7 border-b border-zinc-800/40 bg-[#111113] flex items-center justify-between px-3">
+            <span className="text-[9px] uppercase tracking-widest text-zinc-600 font-medium">Mixer</span>
+            <span className="text-[9px] text-zinc-700">{orderedTracks.length} trk</span>
           </div>
-          {orderedTracks.map((track) => {
+          {orderedTracks.map((track, idx) => {
             const ts = trackStates.get(track.id);
             return (
               <TrackControls
                 key={track.id}
                 track={track}
+                index={idx}
                 height={TRACK_HEIGHT}
                 volume={ts?.volume ?? 0.8}
                 pan={ts?.pan ?? 0}
@@ -612,62 +603,53 @@ export function DAW({
         </div>
 
         {/* Waveform Area */}
-        <div className="flex-1 min-w-0 relative" ref={waveformAreaRef}>
+        <div className="flex-1 min-w-0 relative bg-[#0a0a0c]" ref={waveformAreaRef}>
           {/* Timeline Ruler */}
-          <div className="h-7 border-b border-zinc-800/40 bg-zinc-900/40 relative cursor-pointer" onMouseDown={handlePointerDown}>
+          <div className="h-7 border-b border-zinc-800/40 bg-[#0e0e10] relative cursor-pointer" onMouseDown={handlePointerDown}>
             <canvas ref={timelineRef} className="w-full h-full" style={{ display: "block" }} />
           </div>
 
-          {/* Playhead — spans full height */}
+          {/* Playhead */}
           <div
             className="absolute top-0 bottom-0 z-30 pointer-events-none"
-            style={{ left: `${playheadPercent}%`, transition: isDragging ? "none" : "left 60ms linear" }}
+            style={{ left: `${playheadPercent}%`, transition: isDragging ? "none" : "left 50ms linear" }}
           >
-            {/* Head triangle */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0 h-0"
-              style={{ borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "7px solid #34d399" }}
-            />
-            {/* Line */}
-            <div className="absolute top-[7px] bottom-0 left-1/2 -translate-x-1/2 w-px bg-emerald-400" />
+              style={{ borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "7px solid #34d399" }}/>
+            <div className="absolute top-[7px] bottom-0 left-1/2 -translate-x-1/2 w-px bg-emerald-400/80"/>
+            {/* Glow */}
+            <div className="absolute top-[7px] bottom-0 left-1/2 -translate-x-1/2 w-[3px] bg-emerald-400/15 blur-[1px]"/>
           </div>
 
-          {/* Drag handle (wider invisible hit area over playhead) */}
-          <div
-            className="absolute top-0 bottom-0 z-40 cursor-col-resize"
-            style={{
-              left: `calc(${playheadPercent}% - 6px)`,
-              width: 12,
-              transition: isDragging ? "none" : "left 60ms linear",
-            }}
-            onMouseDown={handlePointerDown}
-          />
+          {/* Drag handle */}
+          <div className="absolute top-0 bottom-0 z-40 cursor-col-resize"
+            style={{ left: `calc(${playheadPercent}% - 8px)`, width: 16, transition: isDragging ? "none" : "left 50ms linear" }}
+            onMouseDown={handlePointerDown}/>
 
-          {/* Click-to-seek on waveform area */}
-          <div
-            className="absolute top-7 left-0 right-0 bottom-0 z-10 cursor-crosshair"
-            onMouseDown={handlePointerDown}
-          />
+          {/* Click-to-seek */}
+          <div className="absolute top-7 left-0 right-0 bottom-0 z-10 cursor-crosshair" onMouseDown={handlePointerDown}/>
 
           {/* Waveform rows */}
-          {orderedTracks.map((track) => {
+          {orderedTracks.map((track, idx) => {
             const isUploadingThis = uploadingTrackId === track.id;
             const isRecordingThis = recording && recordingTrackId === track.id;
+            const trackColor = getTrackColor(track.instrument, 1);
             return (
               <div
                 key={track.id}
-                className="border-b border-zinc-800/30 relative group"
-                style={{ height: TRACK_HEIGHT }}
+                className="border-b border-zinc-800/20 relative group"
+                style={{ height: TRACK_HEIGHT, background: idx % 2 === 0 ? "#0a0a0c" : "#0c0c0e" }}
               >
                 {/* Mobile instrument label */}
                 <div className="absolute top-1 left-1 z-[5] sm:hidden">
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-900/80 text-zinc-400 backdrop-blur-sm">
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-sm" style={{ color: trackColor }}>
                     {track.instrument}
                   </span>
                 </div>
 
-                {/* Background grid lines */}
-                <div className="absolute inset-0 opacity-[0.03]" style={{
-                  backgroundImage: "repeating-linear-gradient(90deg, #fff 0px, #fff 1px, transparent 1px, transparent 80px)",
+                {/* Beat grid */}
+                <div className="absolute inset-0 opacity-[0.04]" style={{
+                  backgroundImage: `repeating-linear-gradient(90deg, #fff 0px, #fff 1px, transparent 1px, transparent ${100 / (duration / (60 / bpm))}%)`,
                 }} />
 
                 {track.ipfsUrl ? (
@@ -738,10 +720,11 @@ export function DAW({
           {tracks.length === 0 && (
             <div className="flex items-center justify-center" style={{ height: TRACK_HEIGHT * 2 }}>
               <div className="text-center text-zinc-700">
-                <svg className="w-8 h-8 mx-auto mb-2 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                  <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+                <svg className="w-10 h-10 mx-auto mb-2 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                  <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
                 </svg>
-                <p className="text-xs">Empty session</p>
+                <p className="text-[11px]">Add tracks to start your session</p>
+                <p className="text-[9px] text-zinc-800 mt-1">Space to play &middot; Arrows to seek</p>
               </div>
             </div>
           )}
@@ -753,7 +736,7 @@ export function DAW({
         const track = tracks.find((t) => t.id === fxOpenTrackId);
         if (!track) return null;
         return (
-          <div className="border-t border-zinc-800/60 p-3">
+          <div className="border-t border-zinc-800/40 p-3 bg-[#0e0e10]">
             <TrackEffects
               instrument={track.instrument}
               values={trackEffects.get(fxOpenTrackId) ?? DEFAULT_EFFECTS}
