@@ -71,10 +71,25 @@ export function DAW({
   const { metronomeActive, toggleMetronome, stopMetronome } = useMetronome();
   const { toast } = useToast();
 
+  // Get the actual longest audio duration from WaveSurfer instances
+  const getAudioDuration = useCallback(() => {
+    let maxDur = 0;
+    trackStates.forEach((ts) => {
+      if (ts.wavesurfer) {
+        const d = ts.wavesurfer.getDuration();
+        if (d > maxDur) maxDur = d;
+      }
+    });
+    return maxDur || duration;
+  }, [trackStates, duration]);
+
+  const timelineDuration = getAudioDuration();
+
   // --- Timeline ruler ---
   useEffect(() => {
     const canvas = timelineRef.current;
-    if (!canvas || duration <= 0) return;
+    const dur = timelineDuration;
+    if (!canvas || dur <= 0) return;
 
     const draw = () => {
       const dpr = window.devicePixelRatio || 1;
@@ -86,11 +101,11 @@ export function DAW({
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, rect.width, rect.height);
 
-      const tickInterval = duration <= 30 ? 1 : duration <= 120 ? 5 : 10;
-      const majorInterval = tickInterval * (duration <= 30 ? 5 : 2);
+      const tickInterval = dur <= 30 ? 1 : dur <= 120 ? 5 : 10;
+      const majorInterval = tickInterval * (dur <= 30 ? 5 : 2);
 
-      for (let t = 0; t <= duration; t += tickInterval) {
-        const x = (t / duration) * rect.width;
+      for (let t = 0; t <= dur; t += tickInterval) {
+        const x = (t / dur) * rect.width;
         const isMajor = t % majorInterval === 0;
         ctx.beginPath();
         ctx.moveTo(x, isMajor ? 0 : rect.height * 0.55);
@@ -113,7 +128,7 @@ export function DAW({
     const obs = new ResizeObserver(draw);
     obs.observe(canvas);
     return () => obs.disconnect();
-  }, [duration]);
+  }, [timelineDuration]);
 
   // --- Create WaveSurfer when a container mounts (ref callback) ---
   const initWaveSurfer = useCallback(
@@ -284,10 +299,17 @@ export function DAW({
   const seekAll = useCallback(
     (progress: number) => {
       const clamped = Math.max(0, Math.min(1, progress));
-      trackStates.forEach((ts) => ts.wavesurfer?.seekTo(clamped));
-      setCurrentTime(clamped * duration);
+      const targetTime = clamped * timelineDuration;
+      trackStates.forEach((ts) => {
+        if (!ts.wavesurfer) return;
+        const audioDur = ts.wavesurfer.getDuration();
+        if (audioDur > 0) {
+          ts.wavesurfer.seekTo(Math.min(1, targetTime / audioDur));
+        }
+      });
+      setCurrentTime(targetTime);
     },
-    [trackStates, duration]
+    [trackStates, timelineDuration]
   );
 
   // --- Keyboard shortcuts ---
@@ -328,17 +350,17 @@ export function DAW({
           break;
         case "ArrowLeft":
           e.preventDefault();
-          seekAll(Math.max(0, (currentTime - 5) / duration));
+          seekAll(Math.max(0, (currentTime - 5) / timelineDuration));
           break;
         case "ArrowRight":
           e.preventDefault();
-          seekAll(Math.min(1, (currentTime + 5) / duration));
+          seekAll(Math.min(1, (currentTime + 5) / timelineDuration));
           break;
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [playing, trackStates, currentTime, duration, seekAll, uploadedCount]);
+  }, [playing, trackStates, currentTime, timelineDuration, seekAll, uploadedCount]);
 
   // --- Drag-to-seek (playhead + waveform area) ---
   const getProgressFromEvent = useCallback(
@@ -486,7 +508,7 @@ export function DAW({
     return `${m}:${s.toString().padStart(2, "0")}.${ms}`;
   };
 
-  const playheadPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const playheadPercent = timelineDuration > 0 ? (currentTime / timelineDuration) * 100 : 0;
 
   return (
     <div className="bg-[#0c0c0e] rounded-xl overflow-hidden border border-zinc-800/50 shadow-2xl select-none">
@@ -529,7 +551,7 @@ export function DAW({
           <div className="font-mono text-sm tabular-nums bg-black/40 px-2.5 py-1 rounded border border-zinc-800/50 min-w-[130px] text-center">
             <span className="text-emerald-400 font-semibold">{formatTime(currentTime)}</span>
             <span className="text-zinc-700 mx-0.5">/</span>
-            <span className="text-zinc-500">{formatTime(duration)}</span>
+            <span className="text-zinc-500">{formatTime(timelineDuration)}</span>
           </div>
           <div className="font-mono text-xs bg-black/40 px-2 py-1 rounded border border-zinc-800/50 text-orange-400/80 hidden sm:block">
             {bpm} <span className="text-zinc-600 text-[9px]">BPM</span>
@@ -649,7 +671,7 @@ export function DAW({
 
                 {/* Beat grid */}
                 <div className="absolute inset-0 opacity-[0.04]" style={{
-                  backgroundImage: `repeating-linear-gradient(90deg, #fff 0px, #fff 1px, transparent 1px, transparent ${100 / (duration / (60 / bpm))}%)`,
+                  backgroundImage: `repeating-linear-gradient(90deg, #fff 0px, #fff 1px, transparent 1px, transparent ${100 / Math.max(1, timelineDuration / (60 / bpm))}%)`,
                 }} />
 
                 {track.ipfsUrl ? (
