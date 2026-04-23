@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { captureError } from "./sentry";
 
 export class HttpError extends Error {
   status: number;
@@ -47,6 +48,7 @@ export function withErrors<Ctx = unknown>(h: Handler<Ctx>): Handler<Ctx> {
         return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
       }
       console.error("[api-error]", err);
+      captureError(err, { url: req.url, method: req.method });
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
   };
