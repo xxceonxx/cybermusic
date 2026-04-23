@@ -7,6 +7,7 @@ const TEST_DB_PATH = path.resolve(process.cwd(), "db", "e2e-test.sqlite");
 
 export default defineConfig({
   testDir: "./e2e",
+  testMatch: /.*\.spec\.ts$/,
   timeout: 30_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

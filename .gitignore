@@ -49,6 +49,7 @@ db/*.sqlite-wal
 /test-results
 /playwright-report
 /playwright/.cache
+/contracts/test-results
 /db/e2e-test.sqlite
 /db/e2e-test.sqlite-shm
 /db/e2e-test.sqlite-wal
