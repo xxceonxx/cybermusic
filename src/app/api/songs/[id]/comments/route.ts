@@ -10,18 +10,17 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export const GET = withErrors<Ctx>(async (_req, { params }) => {
   const { id } = await params;
-  const db = getDb();
+  const db = await getDb();
 
-  const comments = db
-    .prepare(
-      `SELECT c.id, c.body, c.created_at, c.user_id,
-              u.name as user_name, u.address as user_address
-       FROM comments c
-       LEFT JOIN users u ON c.user_id = u.id
-       WHERE c.song_id = ?
-       ORDER BY c.created_at DESC`
-    )
-    .all(id) as Record<string, unknown>[];
+  const comments = await db.all(
+    `SELECT c.id, c.body, c.created_at, c.user_id,
+            u.name as user_name, u.address as user_address
+     FROM comments c
+     LEFT JOIN users u ON c.user_id = u.id
+     WHERE c.song_id = ?
+     ORDER BY c.created_at DESC`,
+    id
+  );
 
   return NextResponse.json(toCamelAll(comments));
 });
@@ -32,23 +31,25 @@ export const POST = withErrors<Ctx>(async (req, { params }) => {
   const userId = await requireUserId(req as NextRequest);
   const { body: commentBody } = await parseJson(req, createCommentSchema);
 
-  const db = getDb();
-  const song = db.prepare("SELECT id FROM songs WHERE id = ?").get(id);
+  const db = await getDb();
+  const song = await db.first("SELECT id FROM songs WHERE id = ?", id);
   if (!song) throw NotFound("Song not found");
 
-  const result = db
-    .prepare("INSERT INTO comments (song_id, user_id, body) VALUES (?, ?, ?)")
-    .run(id, userId, commentBody);
+  const result = await db.run(
+    "INSERT INTO comments (song_id, user_id, body) VALUES (?, ?, ?)",
+    id,
+    userId,
+    commentBody
+  );
 
-  const comment = db
-    .prepare(
-      `SELECT c.id, c.body, c.created_at, c.user_id,
-              u.name as user_name, u.address as user_address
-       FROM comments c
-       LEFT JOIN users u ON c.user_id = u.id
-       WHERE c.id = ?`
-    )
-    .get(result.lastInsertRowid) as Record<string, unknown> | undefined;
+  const comment = await db.first(
+    `SELECT c.id, c.body, c.created_at, c.user_id,
+            u.name as user_name, u.address as user_address
+     FROM comments c
+     LEFT JOIN users u ON c.user_id = u.id
+     WHERE c.id = ?`,
+    result.lastInsertId
+  );
 
   return NextResponse.json(comment ? toCamelAll([comment])[0] : {}, { status: 201 });
 });

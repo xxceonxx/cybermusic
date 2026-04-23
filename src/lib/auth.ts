@@ -11,7 +11,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
     }),
-    // SIWE provider for wallet authentication
     Credentials({
       id: "siwe",
       name: "Ethereum",
@@ -22,9 +21,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.message || !credentials?.signature) return null;
 
-        const siwe = new SiweMessage(
-          JSON.parse(credentials.message as string)
-        );
+        const siwe = new SiweMessage(JSON.parse(credentials.message as string));
         const result = await siwe.verify({
           signature: credentials.signature as string,
         });
@@ -32,29 +29,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!result.success) return null;
 
         const address = siwe.address.toLowerCase();
-        const db = getDb();
+        const db = await getDb();
 
-        // Find or create user by wallet address
-        let user = db
-          .prepare("SELECT * FROM users WHERE address = ?")
-          .get(address) as { id: string; address: string; name: string } | undefined;
+        let user = await db.first<{ id: string; address: string; name: string }>(
+          "SELECT * FROM users WHERE address = ?",
+          address
+        );
 
         if (!user) {
           const id = uuidv4();
-          db.prepare(
-            "INSERT INTO users (id, address, auth_provider) VALUES (?, ?, 'siwe')"
-          ).run(id, address);
-          user = { id, address, name: address.slice(0, 6) + "..." + address.slice(-4) };
+          await db.run(
+            "INSERT INTO users (id, address, auth_provider) VALUES (?, ?, 'siwe')",
+            id,
+            address
+          );
+          user = {
+            id,
+            address,
+            name: address.slice(0, 6) + "..." + address.slice(-4),
+          };
         }
 
-        return {
-          id: user.id,
-          name: user.name,
-          address,
-        };
+        return { id: user.id, name: user.name, address };
       },
     }),
-    // Email/password provider for non-crypto users
     Credentials({
       id: "email",
       name: "Email",
@@ -66,28 +64,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!credentials?.email || !credentials?.password) return null;
 
         const email = (credentials.email as string).toLowerCase();
-        const db = getDb();
+        const db = await getDb();
 
-        // For now, simple lookup. In production: hash passwords with bcrypt
-        let user = db
-          .prepare("SELECT * FROM users WHERE email = ?")
-          .get(email) as { id: string; email: string; name: string } | undefined;
+        let user = await db.first<{ id: string; email: string; name: string }>(
+          "SELECT * FROM users WHERE email = ?",
+          email
+        );
 
         if (!user) {
-          // Auto-register for simplicity
           const id = uuidv4();
           const name = email.split("@")[0];
-          db.prepare(
-            "INSERT INTO users (id, email, name, auth_provider) VALUES (?, ?, ?, 'email')"
-          ).run(id, email, name);
+          await db.run(
+            "INSERT INTO users (id, email, name, auth_provider) VALUES (?, ?, ?, 'email')",
+            id,
+            email,
+            name
+          );
           user = { id, email, name };
         }
 
-        return {
-          id: user.id,
-          name: user.name,
-          email,
-        };
+        return { id: user.id, name: user.name, email };
       },
     }),
   ],

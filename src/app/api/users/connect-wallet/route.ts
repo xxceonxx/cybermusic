@@ -11,17 +11,19 @@ export const PUT = withErrors(async (req) => {
 
   const { address } = await parseJson(req, connectWalletSchema);
   const normalizedAddress = address.toLowerCase();
-  const db = getDb();
+  const db = await getDb();
 
-  const existing = db
-    .prepare("SELECT id FROM users WHERE address = ?")
-    .get(normalizedAddress) as { id: string } | undefined;
+  const existing = await db.first<{ id: string }>(
+    "SELECT id FROM users WHERE address = ?",
+    normalizedAddress
+  );
 
   if (existing && existing.id !== session.user.id) {
     throw Conflict("Wallet already linked to another account");
   }
 
-  db.prepare("UPDATE users SET address = ? WHERE id = ?").run(
+  await db.run(
+    "UPDATE users SET address = ? WHERE id = ?",
     normalizedAddress,
     session.user.id
   );

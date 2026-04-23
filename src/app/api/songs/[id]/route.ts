@@ -9,22 +9,19 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export const GET = withErrors<Ctx>(async (_req, { params }) => {
   const { id } = await params;
-  const db = getDb();
+  const db = await getDb();
 
-  const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as
-    | Record<string, unknown>
-    | undefined;
+  const song = await db.first("SELECT * FROM songs WHERE id = ?", id);
   if (!song) throw NotFound();
 
-  const tracks = db
-    .prepare(
-      `SELECT t.*, u.name as editor_name, u.address as editor_address
-       FROM tracks t
-       LEFT JOIN users u ON t.editor_id = u.id
-       WHERE t.song_id = ?
-       ORDER BY t.created_at ASC`
-    )
-    .all(id) as Record<string, unknown>[];
+  const tracks = await db.all(
+    `SELECT t.*, u.name as editor_name, u.address as editor_address
+     FROM tracks t
+     LEFT JOIN users u ON t.editor_id = u.id
+     WHERE t.song_id = ?
+     ORDER BY t.created_at ASC`,
+    id
+  );
 
   return NextResponse.json({ ...toCamel(song), tracks: toCamelAll(tracks) });
 });
@@ -33,17 +30,20 @@ export const DELETE = withErrors<Ctx>(async (req, { params }) => {
   const { id } = await params;
   const userId = await requireUserId(req as NextRequest);
 
-  const db = getDb();
-  const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as
-    | { creator_id: string; status: string }
-    | undefined;
+  const db = await getDb();
+  const song = await db.first<{ creator_id: string; status: string }>(
+    "SELECT * FROM songs WHERE id = ?",
+    id
+  );
 
   if (!song) throw NotFound();
   if (song.creator_id !== userId) throw Forbidden();
   if (song.status === "minted") throw BadRequest("Cannot delete minted song");
 
-  db.prepare("DELETE FROM tracks WHERE song_id = ?").run(id);
-  db.prepare("DELETE FROM songs WHERE id = ?").run(id);
+  await db.batch([
+    { sql: "DELETE FROM tracks WHERE song_id = ?", params: [id] },
+    { sql: "DELETE FROM songs WHERE id = ?", params: [id] },
+  ]);
 
   return NextResponse.json({ success: true });
 });
@@ -52,10 +52,11 @@ export const PATCH = withErrors<Ctx>(async (req, { params }) => {
   const { id } = await params;
   const userId = await requireUserId(req as NextRequest);
 
-  const db = getDb();
-  const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as
-    | { creator_id: string }
-    | undefined;
+  const db = await getDb();
+  const song = await db.first<{ creator_id: string }>(
+    "SELECT * FROM songs WHERE id = ?",
+    id
+  );
 
   if (!song) throw NotFound();
   if (song.creator_id !== userId) throw Forbidden();
@@ -72,10 +73,8 @@ export const PATCH = withErrors<Ctx>(async (req, { params }) => {
   if (updates.length === 0) throw BadRequest("No fields to update");
 
   values.push(id);
-  db.prepare(`UPDATE songs SET ${updates.join(", ")} WHERE id = ?`).run(...values);
+  await db.run(`UPDATE songs SET ${updates.join(", ")} WHERE id = ?`, ...values);
 
-  const updated = db
-    .prepare("SELECT * FROM songs WHERE id = ?")
-    .get(id) as Record<string, unknown>;
-  return NextResponse.json(toCamel(updated));
+  const updated = await db.first("SELECT * FROM songs WHERE id = ?", id);
+  return NextResponse.json(updated ? toCamel(updated) : {});
 });

@@ -9,14 +9,15 @@ export const DELETE = withErrors<Ctx>(async (req, { params }) => {
   const { id } = await params;
   const userId = await requireUserId(req as NextRequest);
 
-  const db = getDb();
-  const track = db.prepare("SELECT * FROM tracks WHERE id = ?").get(id) as
-    | { creator_id: string }
-    | undefined;
+  const db = await getDb();
+  const track = await db.first<{ creator_id: string }>(
+    "SELECT * FROM tracks WHERE id = ?",
+    id
+  );
 
   if (!track) throw NotFound();
   if (track.creator_id !== userId) throw Forbidden();
 
-  db.prepare("DELETE FROM tracks WHERE id = ?").run(id);
+  await db.run("DELETE FROM tracks WHERE id = ?", id);
   return NextResponse.json({ success: true });
 });

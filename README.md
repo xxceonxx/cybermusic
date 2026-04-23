@@ -78,6 +78,34 @@ db/
   migrations/       — D1/SQLite schema
 ```
 
+## Database
+
+Async `Db` interface in `src/lib/db.ts` with two adapters:
+
+- **Local dev / tests** → `better-sqlite3` at `db/cybermusic.sqlite` (migrations auto-run on first access)
+- **Cloudflare Pages** → D1 binding `DB` (wired via `wrangler.toml`)
+
+Runtime picks D1 if `getRequestContext().env.DB` is available, else falls back to sqlite.
+
+### D1 setup (production)
+
+```bash
+# Create the D1 database
+npx wrangler d1 create cybermusic
+# Copy the returned database_id into wrangler.toml
+
+# Apply each migration (once per environment)
+for f in db/migrations/*.sql; do
+  npx wrangler d1 execute cybermusic --remote --file="$f"
+done
+```
+
+## Testing
+
+- `npm test` — Vitest unit tests (schemas, rate-limit, error middleware)
+- `npm run test:e2e` — Playwright smoke tests on isolated port 3100
+- `cd contracts && npx hardhat test` — Solidity contract tests
+
 ## Architecture
 
 **Hybrid: off-chain collaboration, on-chain ownership.**

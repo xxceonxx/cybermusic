@@ -10,17 +10,20 @@ export const POST = withErrors(async (req) => {
   rateLimit(req as NextRequest, { limit: 20, windowMs: 60_000, scope: "wallet-auth" });
   const { address } = await parseJson(req, walletAuthSchema);
   const normalized = address.toLowerCase();
-  const db = getDb();
+  const db = await getDb();
 
-  let user = db
-    .prepare("SELECT id, address FROM users WHERE address = ?")
-    .get(normalized) as { id: string; address: string } | undefined;
+  let user = await db.first<{ id: string; address: string }>(
+    "SELECT id, address FROM users WHERE address = ?",
+    normalized
+  );
 
   if (!user) {
     const id = uuidv4();
-    db.prepare(
-      "INSERT INTO users (id, address, auth_provider) VALUES (?, ?, 'siwe')"
-    ).run(id, normalized);
+    await db.run(
+      "INSERT INTO users (id, address, auth_provider) VALUES (?, ?, 'siwe')",
+      id,
+      normalized
+    );
     user = { id, address: normalized };
   }
 

@@ -6,26 +6,27 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export const GET = withErrors<Ctx>(async (_req, { params }) => {
   const { id } = await params;
-  const db = getDb();
+  const db = await getDb();
 
-  const songs = db
-    .prepare(
-      `SELECT DISTINCT s.*
-       FROM songs s
-       INNER JOIN tracks t ON t.song_id = s.id
-       WHERE t.editor_id = ? AND t.creator_id != ?
-       ORDER BY s.created_at DESC`
-    )
-    .all(id, id) as Record<string, unknown>[];
+  const songs = await db.all(
+    `SELECT DISTINCT s.*
+     FROM songs s
+     INNER JOIN tracks t ON t.song_id = s.id
+     WHERE t.editor_id = ? AND t.creator_id != ?
+     ORDER BY s.created_at DESC`,
+    id,
+    id
+  );
 
-  const result = songs.map((song) => {
-    const tracks = db
-      .prepare(
-        "SELECT id, instrument, status, ipfs_url FROM tracks WHERE song_id = ?"
-      )
-      .all(song.id as number) as Record<string, unknown>[];
-    return { ...toCamel(song), tracks: toCamelAll(tracks) };
-  });
+  const result = await Promise.all(
+    songs.map(async (song) => {
+      const tracks = await db.all(
+        "SELECT id, instrument, status, ipfs_url FROM tracks WHERE song_id = ?",
+        song.id as number
+      );
+      return { ...toCamel(song), tracks: toCamelAll(tracks) };
+    })
+  );
 
   return NextResponse.json(result);
 });

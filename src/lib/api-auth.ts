@@ -10,8 +10,8 @@ export async function getUserId(req?: NextRequest): Promise<string | null> {
   if (req) {
     const headerUserId = req.headers.get("x-user-id");
     if (headerUserId) {
-      const db = getDb();
-      const user = db.prepare("SELECT id FROM users WHERE id = ?").get(headerUserId);
+      const db = await getDb();
+      const user = await db.first("SELECT id FROM users WHERE id = ?", headerUserId);
       if (user) return headerUserId;
     }
   }

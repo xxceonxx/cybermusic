@@ -11,47 +11,48 @@ export const POST = withErrors<Ctx>(async (req, { params }) => {
   const { id } = await params;
   const userId = await requireUserId(req as NextRequest);
 
-  const db = getDb();
-  const original = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as
-    | Record<string, unknown>
-    | undefined;
+  const db = await getDb();
+  const original = await db.first<{
+    name: string;
+    duration: number;
+    bpm: number;
+    image: string;
+  }>("SELECT * FROM songs WHERE id = ?", id);
   if (!original) throw NotFound("Song not found");
 
-  const result = db
-    .prepare(
-      "INSERT INTO songs (name, duration, bpm, image, creator_id) VALUES (?, ?, ?, ?, ?)"
-    )
-    .run(
-      `${original.name} (Remix)`,
-      original.duration,
-      original.bpm,
-      original.image,
-      userId
-    );
-
-  const newSongId = result.lastInsertRowid;
-
-  const originalTracks = db
-    .prepare("SELECT instrument FROM tracks WHERE song_id = ?")
-    .all(id) as { instrument: string }[];
-
-  const insertTrack = db.prepare(
-    "INSERT INTO tracks (song_id, instrument, creator_id) VALUES (?, ?, ?)"
+  const result = await db.run(
+    "INSERT INTO songs (name, duration, bpm, image, creator_id) VALUES (?, ?, ?, ?, ?)",
+    `${original.name} (Remix)`,
+    original.duration,
+    original.bpm,
+    original.image,
+    userId
   );
-  const tx = db.transaction((items: { instrument: string }[]) => {
-    for (const t of items) insertTrack.run(newSongId, t.instrument, userId);
-  });
-  tx(originalTracks);
 
-  const song = db
-    .prepare("SELECT * FROM songs WHERE id = ?")
-    .get(newSongId) as Record<string, unknown>;
-  const tracks = db
-    .prepare("SELECT * FROM tracks WHERE song_id = ?")
-    .all(newSongId as number) as Record<string, unknown>[];
+  const newSongId = result.lastInsertId;
+
+  const originalTracks = await db.all<{ instrument: string }>(
+    "SELECT instrument FROM tracks WHERE song_id = ?",
+    id
+  );
+
+  if (originalTracks.length > 0) {
+    await db.batch(
+      originalTracks.map((t) => ({
+        sql: "INSERT INTO tracks (song_id, instrument, creator_id) VALUES (?, ?, ?)",
+        params: [newSongId, t.instrument, userId],
+      }))
+    );
+  }
+
+  const song = await db.first("SELECT * FROM songs WHERE id = ?", newSongId);
+  const tracks = await db.all(
+    "SELECT * FROM tracks WHERE song_id = ?",
+    newSongId
+  );
 
   return NextResponse.json(
-    { ...toCamel(song), tracks: toCamelAll(tracks) },
+    { ...(song ? toCamel(song) : {}), tracks: toCamelAll(tracks) },
     { status: 201 }
   );
 });

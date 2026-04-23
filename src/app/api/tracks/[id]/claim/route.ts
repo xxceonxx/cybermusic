@@ -12,28 +12,33 @@ export const PUT = withErrors<Ctx>(async (req, { params }) => {
   const { id } = await params;
   const userId = await requireUserId(req as NextRequest);
 
-  const db = getDb();
+  const db = await getDb();
 
-  const claim = db.transaction((trackId: string, uid: string) => {
-    const t = db.prepare("SELECT * FROM tracks WHERE id = ?").get(trackId) as
-      | { status: string; editor_id: string | null }
-      | undefined;
-    if (!t) throw NotFound();
-    if (t.status !== "open") throw Conflict("Track not available");
-    db.prepare(
-      "UPDATE tracks SET editor_id = ?, status = 'editing' WHERE id = ?"
-    ).run(uid, trackId);
-  });
-  claim(id, userId);
+  const claimResult = await db.run(
+    "UPDATE tracks SET editor_id = ?, status = 'editing' WHERE id = ? AND status = 'open'",
+    userId,
+    id
+  );
 
-  const trackFull = db
-    .prepare("SELECT song_id, instrument FROM tracks WHERE id = ?")
-    .get(id) as { song_id: number; instrument: string };
-  const song = db
-    .prepare("SELECT creator_id, name FROM songs WHERE id = ?")
-    .get(trackFull.song_id) as { creator_id: string; name: string };
-  if (song.creator_id !== userId) {
-    createNotification(
+  if (claimResult.changes === 0) {
+    const exists = await db.first("SELECT id FROM tracks WHERE id = ?", id);
+    if (!exists) throw NotFound();
+    throw Conflict("Track not available");
+  }
+
+  const trackFull = await db.first<{ song_id: number; instrument: string }>(
+    "SELECT song_id, instrument FROM tracks WHERE id = ?",
+    id
+  );
+  const song = trackFull
+    ? await db.first<{ creator_id: string; name: string }>(
+        "SELECT creator_id, name FROM songs WHERE id = ?",
+        trackFull.song_id
+      )
+    : null;
+
+  if (trackFull && song && song.creator_id !== userId) {
+    await createNotification(
       song.creator_id,
       "track_claimed",
       `Someone claimed the ${trackFull.instrument} track on "${song.name}"`,
@@ -41,8 +46,6 @@ export const PUT = withErrors<Ctx>(async (req, { params }) => {
     );
   }
 
-  const updated = db
-    .prepare("SELECT * FROM tracks WHERE id = ?")
-    .get(id) as Record<string, unknown>;
-  return NextResponse.json(toCamel(updated));
+  const updated = await db.first("SELECT * FROM tracks WHERE id = ?", id);
+  return NextResponse.json(updated ? toCamel(updated) : {});
 });

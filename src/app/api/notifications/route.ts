@@ -5,20 +5,20 @@ import { withErrors } from "@/lib/api-error";
 
 export const GET = withErrors(async (req) => {
   const userId = await requireUserId(req as NextRequest);
-  const db = getDb();
-  const notifications = db
-    .prepare(
-      "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50"
-    )
-    .all(userId) as Record<string, unknown>[];
+  const db = await getDb();
+  const notifications = await db.all(
+    "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50",
+    userId
+  );
   return NextResponse.json(toCamelAll(notifications));
 });
 
 export const PATCH = withErrors(async (req) => {
   const userId = await requireUserId(req as NextRequest);
-  const db = getDb();
-  db.prepare(
-    "UPDATE notifications SET read = 1 WHERE user_id = ? AND read = 0"
-  ).run(userId);
+  const db = await getDb();
+  await db.run(
+    "UPDATE notifications SET read = 1 WHERE user_id = ? AND read = 0",
+    userId
+  );
   return NextResponse.json({ success: true });
 });

@@ -18,23 +18,23 @@ const COVER_IMAGES = [
 
 export const GET = withErrors(async (req) => {
   const { creator } = parseQuery(req as NextRequest, songsQuerySchema);
-  const db = getDb();
+  const db = await getDb();
 
-  const query = creator
-    ? "SELECT * FROM songs WHERE creator_id = ? ORDER BY created_at DESC"
-    : "SELECT * FROM songs ORDER BY created_at DESC";
-  const params = creator ? [creator] : [];
+  const songs = creator
+    ? await db.all("SELECT * FROM songs WHERE creator_id = ? ORDER BY created_at DESC", creator)
+    : await db.all("SELECT * FROM songs ORDER BY created_at DESC");
 
-  const songs = db.prepare(query).all(...params) as Record<string, unknown>[];
+  const withTracks = await Promise.all(
+    songs.map(async (song) => {
+      const tracks = await db.all(
+        "SELECT id, instrument, status, ipfs_url FROM tracks WHERE song_id = ?",
+        song.id as number
+      );
+      return { ...toCamel(song), tracks: toCamelAll(tracks) };
+    })
+  );
 
-  const songsWithTracks = songs.map((song) => {
-    const tracks = db
-      .prepare("SELECT id, instrument, status, ipfs_url FROM tracks WHERE song_id = ?")
-      .all(song.id as number) as Record<string, unknown>[];
-    return { ...toCamel(song), tracks: toCamelAll(tracks) };
-  });
-
-  return NextResponse.json(songsWithTracks);
+  return NextResponse.json(withTracks);
 });
 
 export const POST = withErrors(async (req) => {
@@ -42,18 +42,23 @@ export const POST = withErrors(async (req) => {
   const userId = await requireUserId(req as NextRequest);
   const { name, duration, bpm, genre } = await parseJson(req, createSongSchema);
 
-  const db = getDb();
+  const db = await getDb();
   const image = COVER_IMAGES[Math.floor(Math.random() * COVER_IMAGES.length)];
 
-  const result = db
-    .prepare(
-      "INSERT INTO songs (name, duration, bpm, image, creator_id, genre) VALUES (?, ?, ?, ?, ?, ?)"
-    )
-    .run(name, duration, bpm, image, userId, genre ?? null);
+  const result = await db.run(
+    "INSERT INTO songs (name, duration, bpm, image, creator_id, genre) VALUES (?, ?, ?, ?, ?, ?)",
+    name,
+    duration,
+    bpm,
+    image,
+    userId,
+    genre ?? null
+  );
 
-  const song = db
-    .prepare("SELECT * FROM songs WHERE id = ?")
-    .get(result.lastInsertRowid) as Record<string, unknown>;
+  const song = await db.first(
+    "SELECT * FROM songs WHERE id = ?",
+    result.lastInsertId
+  );
 
-  return NextResponse.json(toCamel(song), { status: 201 });
+  return NextResponse.json(song ? toCamel(song) : {}, { status: 201 });
 });
