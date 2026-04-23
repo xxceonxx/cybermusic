@@ -26,7 +26,7 @@ export const GET = withErrors<Ctx>(async (_req, { params }) => {
 });
 
 export const POST = withErrors<Ctx>(async (req, { params }) => {
-  rateLimit(req as NextRequest, { limit: 10, windowMs: 60_000, scope: "comment" });
+  await rateLimit(req as NextRequest, { limit: 10, windowMs: 60_000, scope: "comment" });
   const { id } = await params;
   const userId = await requireUserId(req as NextRequest);
   const { body: commentBody } = await parseJson(req, createCommentSchema);

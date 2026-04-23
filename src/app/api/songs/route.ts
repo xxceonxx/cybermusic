@@ -38,7 +38,7 @@ export const GET = withErrors(async (req) => {
 });
 
 export const POST = withErrors(async (req) => {
-  rateLimit(req as NextRequest, { limit: 30, windowMs: 60_000, scope: "song:create" });
+  await rateLimit(req as NextRequest, { limit: 30, windowMs: 60_000, scope: "song:create" });
   const userId = await requireUserId(req as NextRequest);
   const { name, duration, bpm, genre } = await parseJson(req, createSongSchema);
 

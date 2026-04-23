@@ -8,7 +8,7 @@ import { rateLimit } from "@/lib/rate-limit";
 type Ctx = { params: Promise<{ id: string }> };
 
 export const PUT = withErrors<Ctx>(async (req, { params }) => {
-  rateLimit(req as NextRequest, { limit: 30, windowMs: 60_000, scope: "claim" });
+  await rateLimit(req as NextRequest, { limit: 30, windowMs: 60_000, scope: "claim" });
   const { id } = await params;
   const userId = await requireUserId(req as NextRequest);
 

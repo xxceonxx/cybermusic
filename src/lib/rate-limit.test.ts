@@ -2,30 +2,30 @@ import { describe, it, expect, vi } from "vitest";
 import { rateLimit } from "./rate-limit";
 import { HttpError } from "./api-error";
 
-function makeReq(ip = "1.2.3.4"): Parameters<typeof rateLimit>[0] {
+function makeReq(ip: string): Parameters<typeof rateLimit>[0] {
   return {
     headers: new Headers({ "x-forwarded-for": ip }),
   } as unknown as Parameters<typeof rateLimit>[0];
 }
 
-describe("rateLimit", () => {
-  it("allows up to limit within window", () => {
+describe("rateLimit (in-memory fallback)", () => {
+  it("allows up to limit within window", async () => {
     const req = makeReq("10.0.0.1");
     for (let i = 0; i < 3; i++) {
-      expect(() =>
+      await expect(
         rateLimit(req, { limit: 3, windowMs: 1000, scope: "test-ok" })
-      ).not.toThrow();
+      ).resolves.toBeUndefined();
     }
   });
 
-  it("throws 429 when limit exceeded", () => {
+  it("throws 429 when limit exceeded", async () => {
     const req = makeReq("10.0.0.2");
     for (let i = 0; i < 3; i++) {
-      rateLimit(req, { limit: 3, windowMs: 10_000, scope: "test-over" });
+      await rateLimit(req, { limit: 3, windowMs: 10_000, scope: "test-over" });
     }
     let err: unknown;
     try {
-      rateLimit(req, { limit: 3, windowMs: 10_000, scope: "test-over" });
+      await rateLimit(req, { limit: 3, windowMs: 10_000, scope: "test-over" });
     } catch (e) {
       err = e;
     }
@@ -33,35 +33,35 @@ describe("rateLimit", () => {
     expect((err as HttpError).status).toBe(429);
   });
 
-  it("resets after window elapses", () => {
-    vi.useFakeTimers();
+  it("resets after window elapses", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: false });
     const req = makeReq("10.0.0.3");
-    rateLimit(req, { limit: 1, windowMs: 500, scope: "test-reset" });
-    expect(() =>
+    await rateLimit(req, { limit: 1, windowMs: 500, scope: "test-reset" });
+    await expect(
       rateLimit(req, { limit: 1, windowMs: 500, scope: "test-reset" })
-    ).toThrow();
+    ).rejects.toBeInstanceOf(HttpError);
 
     vi.advanceTimersByTime(600);
-    expect(() =>
+    await expect(
       rateLimit(req, { limit: 1, windowMs: 500, scope: "test-reset" })
-    ).not.toThrow();
+    ).resolves.toBeUndefined();
     vi.useRealTimers();
   });
 
-  it("isolates different IPs", () => {
+  it("isolates different IPs", async () => {
     const reqA = makeReq("10.0.0.4");
     const reqB = makeReq("10.0.0.5");
-    rateLimit(reqA, { limit: 1, windowMs: 10_000, scope: "test-ips" });
-    expect(() =>
+    await rateLimit(reqA, { limit: 1, windowMs: 10_000, scope: "test-ips" });
+    await expect(
       rateLimit(reqB, { limit: 1, windowMs: 10_000, scope: "test-ips" })
-    ).not.toThrow();
+    ).resolves.toBeUndefined();
   });
 
-  it("isolates different scopes", () => {
+  it("isolates different scopes", async () => {
     const req = makeReq("10.0.0.6");
-    rateLimit(req, { limit: 1, windowMs: 10_000, scope: "scope-a" });
-    expect(() =>
+    await rateLimit(req, { limit: 1, windowMs: 10_000, scope: "scope-a" });
+    await expect(
       rateLimit(req, { limit: 1, windowMs: 10_000, scope: "scope-b" })
-    ).not.toThrow();
+    ).resolves.toBeUndefined();
   });
 });

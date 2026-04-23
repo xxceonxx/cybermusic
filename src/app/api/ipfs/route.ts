@@ -7,7 +7,7 @@ const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 const ALLOWED_MIME = /^audio\/(webm|mpeg|mp3|wav|ogg|flac|aac|x-m4a|mp4)$/;
 
 export const POST = withErrors(async (req) => {
-  rateLimit(req as NextRequest, { limit: 20, windowMs: 5 * 60_000, scope: "ipfs" });
+  await rateLimit(req as NextRequest, { limit: 20, windowMs: 5 * 60_000, scope: "ipfs" });
   await requireUserId(req as NextRequest);
 
   const jwt = process.env.PINATA_JWT;

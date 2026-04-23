@@ -9,3 +9,9 @@ compatibility_flags = ["nodejs_compat"]
 binding = "DB"
 database_name = "cybermusic"
 database_id = ""
+
+# KV namespace for distributed rate-limiting. Fill id after running:
+#   npx wrangler kv namespace create RATE_LIMIT_KV
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = ""

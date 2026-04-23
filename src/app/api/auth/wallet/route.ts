@@ -7,7 +7,7 @@ import { walletAuthSchema } from "@/lib/schemas";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const POST = withErrors(async (req) => {
-  rateLimit(req as NextRequest, { limit: 20, windowMs: 60_000, scope: "wallet-auth" });
+  await rateLimit(req as NextRequest, { limit: 20, windowMs: 60_000, scope: "wallet-auth" });
   const { address } = await parseJson(req, walletAuthSchema);
   const normalized = address.toLowerCase();
   const db = await getDb();

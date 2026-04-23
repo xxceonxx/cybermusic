@@ -28,7 +28,7 @@ export const GET = withErrors(async (req) => {
 });
 
 export const POST = withErrors(async (req) => {
-  rateLimit(req as NextRequest, { limit: 60, windowMs: 60_000, scope: "track:create" });
+  await rateLimit(req as NextRequest, { limit: 60, windowMs: 60_000, scope: "track:create" });
   const userId = await requireUserId(req as NextRequest);
   const { songId, instrument } = await parseJson(req, createTrackSchema);
 

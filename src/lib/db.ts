@@ -71,7 +71,9 @@ function d1Adapter(db: D1Database): Db {
 
 async function createSqliteAdapter(): Promise<Db> {
   const { default: Database } = await import("better-sqlite3");
-  const DB_PATH = path.join(process.cwd(), "db", "cybermusic.sqlite");
+  const DB_PATH =
+    process.env.CYBERMUSIC_DB_PATH ??
+    path.join(process.cwd(), "db", "cybermusic.sqlite");
   const sqlite = new Database(DB_PATH);
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("foreign_keys = ON");
