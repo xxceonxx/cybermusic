@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserId } from "@/lib/api-auth";
+import { requireUserId } from "@/lib/api-auth";
 import { getDb, toCamel, toCamelAll } from "@/lib/db";
+import { withErrors } from "@/lib/api-error";
+import { parseJson, parseQuery } from "@/lib/api-validate";
+import { createTrackSchema, tracksQuerySchema } from "@/lib/schemas";
+import { rateLimit } from "@/lib/rate-limit";
 
-// GET /api/tracks?status=open&instrument=Bass,Drums
-export async function GET(req: NextRequest) {
+export const GET = withErrors(async (req) => {
+  const { status, instrument } = parseQuery(req as NextRequest, tracksQuerySchema);
   const db = getDb();
-  const status = req.nextUrl.searchParams.get("status");
-  const instruments = req.nextUrl.searchParams.get("instrument");
 
   let query = "SELECT * FROM tracks WHERE 1=1";
   const params: unknown[] = [];
@@ -15,30 +17,20 @@ export async function GET(req: NextRequest) {
     query += " AND status = ?";
     params.push(status);
   }
-  if (instruments) {
-    const list = instruments.split(",");
-    query += ` AND instrument IN (${list.map(() => "?").join(",")})`;
-    params.push(...list);
+  if (instrument && instrument.length > 0) {
+    query += ` AND instrument IN (${instrument.map(() => "?").join(",")})`;
+    params.push(...instrument);
   }
 
   query += " ORDER BY created_at DESC";
   const tracks = db.prepare(query).all(...params) as Record<string, unknown>[];
   return NextResponse.json(toCamelAll(tracks));
-}
+});
 
-// POST /api/tracks
-export async function POST(req: NextRequest) {
-  const userId = await getUserId(req);
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const body = await req.json();
-  const { songId, instrument } = body;
-
-  if (!songId || !instrument) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-  }
+export const POST = withErrors(async (req) => {
+  rateLimit(req as NextRequest, { limit: 60, windowMs: 60_000, scope: "track:create" });
+  const userId = await requireUserId(req as NextRequest);
+  const { songId, instrument } = await parseJson(req, createTrackSchema);
 
   const db = getDb();
   const result = db
@@ -52,4 +44,4 @@ export async function POST(req: NextRequest) {
     .get(result.lastInsertRowid) as Record<string, unknown>;
 
   return NextResponse.json(toCamel(track), { status: 201 });
-}
+});

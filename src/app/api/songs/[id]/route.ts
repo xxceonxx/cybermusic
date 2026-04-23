@@ -1,109 +1,81 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserId } from "@/lib/api-auth";
+import { requireUserId } from "@/lib/api-auth";
 import { getDb, toCamel, toCamelAll } from "@/lib/db";
+import { withErrors, BadRequest, Forbidden, NotFound } from "@/lib/api-error";
+import { parseJson } from "@/lib/api-validate";
+import { patchSongSchema } from "@/lib/schemas";
 
-// GET /api/songs/[id] — Song with tracks
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+type Ctx = { params: Promise<{ id: string }> };
+
+export const GET = withErrors<Ctx>(async (_req, { params }) => {
   const { id } = await params;
   const db = getDb();
 
-  const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as Record<string, unknown> | undefined;
-  if (!song) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+  const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as
+    | Record<string, unknown>
+    | undefined;
+  if (!song) throw NotFound();
 
   const tracks = db
-    .prepare(`
-      SELECT t.*, u.name as editor_name, u.address as editor_address
-      FROM tracks t
-      LEFT JOIN users u ON t.editor_id = u.id
-      WHERE t.song_id = ?
-      ORDER BY t.created_at ASC
-    `)
+    .prepare(
+      `SELECT t.*, u.name as editor_name, u.address as editor_address
+       FROM tracks t
+       LEFT JOIN users u ON t.editor_id = u.id
+       WHERE t.song_id = ?
+       ORDER BY t.created_at ASC`
+    )
     .all(id) as Record<string, unknown>[];
 
   return NextResponse.json({ ...toCamel(song), tracks: toCamelAll(tracks) });
-}
+});
 
-// DELETE /api/songs/[id]
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withErrors<Ctx>(async (req, { params }) => {
   const { id } = await params;
-  const userId = await getUserId(_req);
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const userId = await requireUserId(req as NextRequest);
 
   const db = getDb();
   const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as
     | { creator_id: string; status: string }
     | undefined;
 
-  if (!song) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-  if (song.creator_id !== userId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-  if (song.status === "minted") {
-    return NextResponse.json({ error: "Cannot delete minted song" }, { status: 400 });
-  }
+  if (!song) throw NotFound();
+  if (song.creator_id !== userId) throw Forbidden();
+  if (song.status === "minted") throw BadRequest("Cannot delete minted song");
 
   db.prepare("DELETE FROM tracks WHERE song_id = ?").run(id);
   db.prepare("DELETE FROM songs WHERE id = ?").run(id);
 
   return NextResponse.json({ success: true });
-}
+});
 
-// PATCH /api/songs/[id] — Update song status/urls
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const PATCH = withErrors<Ctx>(async (req, { params }) => {
   const { id } = await params;
-  const userId = await getUserId(req);
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const userId = await requireUserId(req as NextRequest);
 
   const db = getDb();
   const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as
     | { creator_id: string }
     | undefined;
 
-  if (!song) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-  if (song.creator_id !== userId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  if (!song) throw NotFound();
+  if (song.creator_id !== userId) throw Forbidden();
 
-  const body = await req.json();
-  const allowed = ["status", "ipfs_url", "meta_url", "name", "image", "bpm", "genre"];
+  const body = await parseJson(req, patchSongSchema);
   const updates: string[] = [];
   const values: unknown[] = [];
-
-  for (const key of allowed) {
-    if (body[key] !== undefined) {
+  for (const [key, value] of Object.entries(body)) {
+    if (value !== undefined) {
       updates.push(`${key} = ?`);
-      values.push(body[key]);
+      values.push(value);
     }
   }
-
-  if (updates.length === 0) {
-    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
-  }
+  if (updates.length === 0) throw BadRequest("No fields to update");
 
   values.push(id);
-  db.prepare(`UPDATE songs SET ${updates.join(", ")} WHERE id = ?`).run(
-    ...values
-  );
+  db.prepare(`UPDATE songs SET ${updates.join(", ")} WHERE id = ?`).run(...values);
 
-  const updated = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as Record<string, unknown>;
+  const updated = db
+    .prepare("SELECT * FROM songs WHERE id = ?")
+    .get(id) as Record<string, unknown>;
   return NextResponse.json(toCamel(updated));
-}
+});

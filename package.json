@@ -33,7 +33,8 @@
     "viem": "^2.47.10",
     "wagmi": "^3.6.1",
     "wavesurfer-multitrack": "^0.4.12",
-    "wavesurfer.js": "^7.12.5"
+    "wavesurfer.js": "^7.12.5",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -1,27 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserId } from "@/lib/api-auth";
+import { requireUserId } from "@/lib/api-auth";
+import { withErrors, BadRequest, HttpError } from "@/lib/api-error";
+import { rateLimit } from "@/lib/rate-limit";
 
-// POST /api/ipfs — Proxy upload to Pinata (protects API key)
-export async function POST(req: NextRequest) {
-  const userId = await getUserId(req);
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+const ALLOWED_MIME = /^audio\/(webm|mpeg|mp3|wav|ogg|flac|aac|x-m4a|mp4)$/;
+
+export const POST = withErrors(async (req) => {
+  rateLimit(req as NextRequest, { limit: 20, windowMs: 5 * 60_000, scope: "ipfs" });
+  await requireUserId(req as NextRequest);
 
   const jwt = process.env.PINATA_JWT;
-  if (!jwt) {
-    return NextResponse.json(
-      { error: "IPFS not configured" },
-      { status: 503 }
-    );
-  }
+  if (!jwt) throw new HttpError(503, "IPFS not configured");
 
   const formData = await req.formData();
   const file = formData.get("file");
 
-  if (!file) {
-    return NextResponse.json({ error: "No file provided" }, { status: 400 });
-  }
+  if (!file || !(file instanceof Blob)) throw BadRequest("No file provided");
+  if (file.size === 0) throw BadRequest("File is empty");
+  if (file.size > MAX_UPLOAD_BYTES)
+    throw BadRequest(`File too large (max ${MAX_UPLOAD_BYTES / 1024 / 1024}MB)`);
+  if (file.type && !ALLOWED_MIME.test(file.type))
+    throw BadRequest(`Unsupported file type: ${file.type}`);
 
   const pinataForm = new FormData();
   pinataForm.append("file", file);
@@ -37,15 +37,13 @@ export async function POST(req: NextRequest) {
 
   if (!response.ok) {
     const error = await response.text();
-    return NextResponse.json(
-      { error: "Pinata upload failed", details: error },
-      { status: 502 }
-    );
+    console.error("[ipfs] Pinata upload failed:", response.status, error);
+    throw new HttpError(502, "Pinata upload failed");
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as { IpfsHash: string };
   return NextResponse.json({
     cid: data.IpfsHash,
     url: `https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`,
   });
-}
+});

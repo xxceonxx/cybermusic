@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserId } from "@/lib/api-auth";
+import { requireUserId } from "@/lib/api-auth";
 import { getDb, toCamel, toCamelAll } from "@/lib/db";
-import { v4 as uuidv4 } from "uuid";
+import { withErrors } from "@/lib/api-error";
+import { parseJson, parseQuery } from "@/lib/api-validate";
+import { createSongSchema, songsQuerySchema } from "@/lib/schemas";
+import { rateLimit } from "@/lib/rate-limit";
 
 const COVER_IMAGES = [
   "https://gateway.pinata.cloud/ipfs/QmTSwYWnnB9LW4bCKqyaAg7vrYhdoLLevzAchQaGg3PPzt",
@@ -13,19 +16,17 @@ const COVER_IMAGES = [
   "https://gateway.pinata.cloud/ipfs/QmNfGsPqVaiKfKZNbY48Epdafp4GERJZHgFkazDE9bNPZG",
 ];
 
-// GET /api/songs?creator=userId
-export async function GET(req: NextRequest) {
+export const GET = withErrors(async (req) => {
+  const { creator } = parseQuery(req as NextRequest, songsQuerySchema);
   const db = getDb();
-  const creatorId = req.nextUrl.searchParams.get("creator");
 
-  const query = creatorId
+  const query = creator
     ? "SELECT * FROM songs WHERE creator_id = ? ORDER BY created_at DESC"
     : "SELECT * FROM songs ORDER BY created_at DESC";
-  const params = creatorId ? [creatorId] : [];
+  const params = creator ? [creator] : [];
 
   const songs = db.prepare(query).all(...params) as Record<string, unknown>[];
 
-  // Attach track counts for each song
   const songsWithTracks = songs.map((song) => {
     const tracks = db
       .prepare("SELECT id, instrument, status, ipfs_url FROM tracks WHERE song_id = ?")
@@ -34,21 +35,12 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(songsWithTracks);
-}
+});
 
-// POST /api/songs
-export async function POST(req: NextRequest) {
-  const userId = await getUserId(req);
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const body = await req.json();
-  const { name, duration, bpm, genre } = body;
-
-  if (!name || !duration || !bpm) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-  }
+export const POST = withErrors(async (req) => {
+  rateLimit(req as NextRequest, { limit: 30, windowMs: 60_000, scope: "song:create" });
+  const userId = await requireUserId(req as NextRequest);
+  const { name, duration, bpm, genre } = await parseJson(req, createSongSchema);
 
   const db = getDb();
   const image = COVER_IMAGES[Math.floor(Math.random() * COVER_IMAGES.length)];
@@ -57,11 +49,11 @@ export async function POST(req: NextRequest) {
     .prepare(
       "INSERT INTO songs (name, duration, bpm, image, creator_id, genre) VALUES (?, ?, ?, ?, ?, ?)"
     )
-    .run(name, duration, bpm, image, userId, genre || null);
+    .run(name, duration, bpm, image, userId, genre ?? null);
 
   const song = db
     .prepare("SELECT * FROM songs WHERE id = ?")
     .get(result.lastInsertRowid) as Record<string, unknown>;
 
   return NextResponse.json(toCamel(song), { status: 201 });
-}
+});

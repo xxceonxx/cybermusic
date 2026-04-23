@@ -1,25 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserId } from "@/lib/api-auth";
+import { requireUserId } from "@/lib/api-auth";
 import { getDb, toCamel, toCamelAll } from "@/lib/db";
+import { withErrors, NotFound } from "@/lib/api-error";
+import { rateLimit } from "@/lib/rate-limit";
 
-// POST /api/songs/[id]/fork — Create a remix/fork of a song
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+type Ctx = { params: Promise<{ id: string }> };
+
+export const POST = withErrors<Ctx>(async (req, { params }) => {
+  rateLimit(req as NextRequest, { limit: 10, windowMs: 60_000, scope: "fork" });
   const { id } = await params;
-  const userId = await getUserId(req);
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const userId = await requireUserId(req as NextRequest);
 
   const db = getDb();
-  const original = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as Record<string, unknown> | undefined;
-  if (!original) {
-    return NextResponse.json({ error: "Song not found" }, { status: 404 });
-  }
+  const original = db.prepare("SELECT * FROM songs WHERE id = ?").get(id) as
+    | Record<string, unknown>
+    | undefined;
+  if (!original) throw NotFound("Song not found");
 
-  // Create forked song
   const result = db
     .prepare(
       "INSERT INTO songs (name, duration, bpm, image, creator_id) VALUES (?, ?, ?, ?, ?)"
@@ -34,19 +31,27 @@ export async function POST(
 
   const newSongId = result.lastInsertRowid;
 
-  // Copy track slots (without audio — empty tracks for the new creator)
   const originalTracks = db
     .prepare("SELECT instrument FROM tracks WHERE song_id = ?")
     .all(id) as { instrument: string }[];
 
-  for (const t of originalTracks) {
-    db.prepare(
-      "INSERT INTO tracks (song_id, instrument, creator_id) VALUES (?, ?, ?)"
-    ).run(newSongId, t.instrument, userId);
-  }
+  const insertTrack = db.prepare(
+    "INSERT INTO tracks (song_id, instrument, creator_id) VALUES (?, ?, ?)"
+  );
+  const tx = db.transaction((items: { instrument: string }[]) => {
+    for (const t of items) insertTrack.run(newSongId, t.instrument, userId);
+  });
+  tx(originalTracks);
 
-  const song = db.prepare("SELECT * FROM songs WHERE id = ?").get(newSongId) as Record<string, unknown>;
-  const tracks = db.prepare("SELECT * FROM tracks WHERE song_id = ?").all(newSongId as number) as Record<string, unknown>[];
+  const song = db
+    .prepare("SELECT * FROM songs WHERE id = ?")
+    .get(newSongId) as Record<string, unknown>;
+  const tracks = db
+    .prepare("SELECT * FROM tracks WHERE song_id = ?")
+    .all(newSongId as number) as Record<string, unknown>[];
 
-  return NextResponse.json({ ...toCamel(song), tracks: toCamelAll(tracks) }, { status: 201 });
-}
+  return NextResponse.json(
+    { ...toCamel(song), tracks: toCamelAll(tracks) },
+    { status: 201 }
+  );
+});
