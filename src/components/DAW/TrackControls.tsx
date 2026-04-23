@@ -55,23 +55,23 @@ export function TrackControls({
       onDragEnd={() => onDragEnd?.()}
     >
       {/* Color bar */}
-      <div className="w-1 flex-shrink-0" style={{ backgroundColor: color }} />
+      <div className="w-1.5 flex-shrink-0 rounded-l" style={{ backgroundColor: color }} />
 
-      <div className="flex flex-col justify-between py-2 px-2.5 flex-1 min-w-0">
+      <div className="flex flex-col justify-between py-2.5 px-3 flex-1 min-w-0">
         {/* Top: drag handle + name + number + delete */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {onDragStart && (
             <div className="cursor-grab active:cursor-grabbing text-zinc-700 hover:text-zinc-500 transition flex-shrink-0">
-              <svg width="7" height="12" viewBox="0 0 7 12" fill="currentColor">
+              <svg width="8" height="14" viewBox="0 0 7 12" fill="currentColor">
                 <circle cx="1.5" cy="1.5" r="1"/><circle cx="5.5" cy="1.5" r="1"/>
                 <circle cx="1.5" cy="6" r="1"/><circle cx="5.5" cy="6" r="1"/>
                 <circle cx="1.5" cy="10.5" r="1"/><circle cx="5.5" cy="10.5" r="1"/>
               </svg>
             </div>
           )}
-          <span className="text-[9px] text-zinc-600 font-mono w-3 flex-shrink-0">{index + 1}</span>
-          <span className="text-[11px] font-semibold text-zinc-200 truncate">{track.instrument}</span>
-          <span className="text-[8px] ml-0.5 flex-shrink-0">
+          <span className="text-[10px] text-zinc-600 font-mono w-3 flex-shrink-0">{index + 1}</span>
+          <span className="text-xs font-semibold text-zinc-200 truncate">{track.instrument}</span>
+          <span className="text-[9px] ml-0.5 flex-shrink-0">
             {track.status === "uploaded" ? (
               <span className="text-emerald-500">&#9679;</span>
             ) : track.status === "editing" ? (
@@ -81,32 +81,32 @@ export function TrackControls({
             )}
           </span>
           {isOwner && onDelete && (
-            <button onClick={onDelete} className="ml-auto w-4 h-4 flex items-center justify-center text-zinc-700 hover:text-red-400 transition flex-shrink-0" title="Delete">
-              <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 2l8 8M10 2l-8 8"/></svg>
+            <button onClick={onDelete} className="ml-auto w-5 h-5 flex items-center justify-center text-zinc-700 hover:text-red-400 transition flex-shrink-0" title="Delete">
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 2l8 8M10 2l-8 8"/></svg>
             </button>
           )}
         </div>
 
         {/* Middle: M S FX buttons */}
         <div className="flex items-center gap-1">
-          <button onClick={onMute} className={`px-1.5 h-[18px] text-[9px] font-bold rounded-sm transition ${muted ? "bg-red-500 text-white" : "bg-zinc-800/80 text-zinc-500 hover:text-zinc-200"}`}>M</button>
-          <button onClick={onSolo} className={`px-1.5 h-[18px] text-[9px] font-bold rounded-sm transition ${solo ? "bg-amber-500 text-black" : "bg-zinc-800/80 text-zinc-500 hover:text-zinc-200"}`}>S</button>
+          <button onClick={onMute} className={`px-2 h-[22px] text-[10px] font-bold rounded transition ${muted ? "bg-red-500 text-white" : "bg-zinc-800/80 text-zinc-500 hover:text-zinc-200"}`}>M</button>
+          <button onClick={onSolo} className={`px-2 h-[22px] text-[10px] font-bold rounded transition ${solo ? "bg-amber-500 text-black" : "bg-zinc-800/80 text-zinc-500 hover:text-zinc-200"}`}>S</button>
           {onFx && (
-            <button onClick={onFx} className={`px-1.5 h-[18px] text-[8px] font-bold rounded-sm transition ${fxActive ? "bg-purple-500 text-white" : "bg-zinc-800/80 text-zinc-500 hover:text-zinc-200"}`}>FX</button>
+            <button onClick={onFx} className={`px-2 h-[22px] text-[9px] font-bold rounded transition ${fxActive ? "bg-purple-500 text-white" : "bg-zinc-800/80 text-zinc-500 hover:text-zinc-200"}`}>FX</button>
           )}
 
           {/* Actions: record + upload */}
           <div className="flex items-center gap-0.5 ml-auto">
             {isOwner && track.status !== "uploaded" && onRecord && (
-              <button onClick={onRecord} className={`w-[18px] h-[18px] flex items-center justify-center rounded-sm transition ${recording ? "bg-red-500 animate-pulse" : "bg-zinc-800/80 hover:bg-zinc-700"}`} title={recording ? "Stop" : "Rec"}>
-                <div className={`rounded-full ${recording ? "w-1.5 h-1.5 bg-white" : "w-2 h-2 bg-red-400"}`}/>
+              <button onClick={onRecord} className={`w-[22px] h-[22px] flex items-center justify-center rounded transition ${recording ? "bg-red-500 animate-pulse" : "bg-zinc-800/80 hover:bg-zinc-700"}`} title={recording ? "Stop" : "Rec"}>
+                <div className={`rounded-full ${recording ? "w-2 h-2 bg-white" : "w-2.5 h-2.5 bg-red-400"}`}/>
               </button>
             )}
             {isOwner && track.status !== "uploaded" && onUpload && (
               <>
                 <input ref={fileRef} type="file" accept="audio/*" onChange={() => { if (fileRef.current?.files?.[0]) onUpload(fileRef.current.files[0]); }} className="hidden"/>
-                <button onClick={() => fileRef.current?.click()} className="w-[18px] h-[18px] flex items-center justify-center rounded-sm bg-zinc-800/80 hover:bg-blue-600 transition text-zinc-400 hover:text-white" title="Upload">
-                  <svg width="9" height="9" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2l4 4h-3v5H7V6H4l4-4zM2 12h12v2H2z"/></svg>
+                <button onClick={() => fileRef.current?.click()} className="w-[22px] h-[22px] flex items-center justify-center rounded bg-zinc-800/80 hover:bg-blue-600 transition text-zinc-400 hover:text-white" title="Upload">
+                  <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2l4 4h-3v5H7V6H4l4-4zM2 12h12v2H2z"/></svg>
                 </button>
               </>
             )}
@@ -114,16 +114,16 @@ export function TrackControls({
         </div>
 
         {/* Bottom: Volume + Pan */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[8px] text-zinc-600 w-5">Vol</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] text-zinc-600 w-5">Vol</span>
           <input type="range" min={0} max={100} value={Math.round(volume * 100)} onChange={(e) => onVolumeChange(Number(e.target.value) / 100)}
-            className="flex-1 h-[3px] accent-emerald-500 cursor-pointer" title={`${Math.round(volume * 100)}%`}/>
-          <span className="text-[8px] text-zinc-600 w-5 text-right">{Math.round(volume * 100)}</span>
+            className="flex-1 h-1 accent-emerald-500 cursor-pointer" title={`${Math.round(volume * 100)}%`}/>
+          <span className="text-[9px] text-zinc-600 w-6 text-right">{Math.round(volume * 100)}</span>
           <div className="w-px h-3 bg-zinc-800 mx-0.5"/>
-          <span className="text-[8px] text-zinc-600 w-5">Pan</span>
+          <span className="text-[9px] text-zinc-600 w-5">Pan</span>
           <input type="range" min={-100} max={100} value={Math.round(pan * 100)} onChange={(e) => onPanChange(Number(e.target.value) / 100)}
-            className="w-10 h-[3px] accent-blue-500 cursor-pointer" title={pan === 0 ? "C" : pan > 0 ? `R${Math.round(pan * 100)}` : `L${Math.round(Math.abs(pan) * 100)}`}/>
-          <span className="text-[8px] text-zinc-600 w-3">{pan === 0 ? "C" : pan > 0 ? "R" : "L"}</span>
+            className="w-12 h-1 accent-blue-500 cursor-pointer" title={pan === 0 ? "C" : pan > 0 ? `R${Math.round(pan * 100)}` : `L${Math.round(Math.abs(pan) * 100)}`}/>
+          <span className="text-[9px] text-zinc-600 w-3">{pan === 0 ? "C" : pan > 0 ? "R" : "L"}</span>
         </div>
       </div>
     </div>

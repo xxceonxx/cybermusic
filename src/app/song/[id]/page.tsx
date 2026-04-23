@@ -80,7 +80,7 @@ export default function SongDetail() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="w-full px-4 sm:px-6 py-6">
       <button
         onClick={() => router.back()}
         className="text-zinc-400 hover:text-white mb-6 text-sm"
@@ -139,7 +139,7 @@ export default function SongDetail() {
             ) : (
               <>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold">{song.name}</h1>
+                  <h1 className="text-2xl lg:text-3xl font-bold">{song.name}</h1>
                   {isOwner && song.status === "open" && (
                     <button
                       onClick={() => { setEditName(song.name); setEditBpm(song.bpm); setEditing(true); }}
@@ -229,11 +229,11 @@ export default function SongDetail() {
         onTrackDeleted={handleTrackDeleted}
       />
 
-      {/* Export / Import */}
-      <ExportPanel song={song} tracks={song.tracks} />
-
-      {/* Comments */}
-      <Comments songId={songId} />
+      {/* Below DAW: side-by-side on wide screens */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-6">
+        <Comments songId={songId} />
+        <ExportPanel song={song} tracks={song.tracks} />
+      </div>
 
       {/* NFT Mint Section */}
       {isOwner && <CreateNFT song={song} tracks={song.tracks} />}

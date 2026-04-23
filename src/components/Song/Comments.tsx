@@ -75,7 +75,7 @@ export function Comments({ songId }: CommentsProps) {
   };
 
   return (
-    <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
       <h3 className="text-sm font-semibold text-zinc-300 mb-4">
         Comments ({comments.length})
       </h3>
